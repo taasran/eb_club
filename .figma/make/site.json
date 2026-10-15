@@ -1,0 +1,11 @@
+{
+  "title": "EB-CLUB",
+  "description": "Connects students and enthusiasts of economics and banking at IIUC, providing resources, event updates, and a platform for collaboration and learning.",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

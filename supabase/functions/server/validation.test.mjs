@@ -39,3 +39,4 @@ assert.equal(validContent({
   leadership: { "former-presidents": [{ name: "A", designation: "President", session: "2025", image: "" }] },
 }), true);
 console.log("PASS: confirmed owner, non-owner and unconfirmed rejection, role permissions, content validation.");
+await import("./account_access.test.mjs");

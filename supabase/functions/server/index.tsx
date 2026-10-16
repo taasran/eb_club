@@ -4,6 +4,7 @@ import { bodyLimit } from "npm:hono/body-limit";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import * as kv from "./kv_store.tsx";
 import { validContent, isOwner, canAccess, type Role } from "./validation.ts";
+import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount, AccountAccessError } from "./account_access.ts";
 
 const app = new Hono<{ Variables: { ownerEmail: string; role: Role } }>();
 const base = "/make-server-ad6cf477";
@@ -25,13 +26,14 @@ app.use("/*", bodyLimit({
   onError: (c) => c.json({ error: "Request is too large." }, 413),
 }));
 app.onError((error, c) => {
+  if (error instanceof AccountAccessError) return c.json({ error: error.message }, error.status);
   // Never send database details or credentials to the browser.
   console.error("Club API request failed:", error.message);
   return c.json({ error: "The server could not complete this request. Please try again." }, 500);
 });
 app.notFound((c) => c.json({ error: "API route not found. Deploy the latest club backend." }, 404));
 
-app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v2" }));
+app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v3" }));
 
 // Authentication and authorization are separate: signing up never grants admin access.
 app.use(`${base}/admin/*`, async (c, next) => {
@@ -46,10 +48,11 @@ app.use(`${base}/admin/*`, async (c, next) => {
     return c.json({ error: "This verified account is not authorised to administer the club." }, 403);
   }
   const member = isOwner(data.user, ownerEmail) ? null : await kv.get(`eb:team:${email}`);
-  const role: Role | null = isOwner(data.user, ownerEmail) ? "owner"
-    : member?.role === "admin" || member?.role === "moderator" ? member.role : null;
+  const role: Role | null = isOwner(data.user, ownerEmail) ? "owner" : approvedAccountRole(data.user, member);
   if (!role || !canAccess(role, c.req.path)) {
-    return c.json({ error: "Your account does not have permission for this action." }, 403);
+    return c.json({ error: role ? "Only the owner can review accounts or change team access."
+      : member?.status === "removed" && member?.userId === data.user.id ? "Your dashboard access has been removed."
+      : "Your account is awaiting owner approval. You cannot access the dashboard until it is approved." }, 403);
   }
   c.set("ownerEmail", email);
   c.set("role", role);
@@ -60,30 +63,17 @@ app.get(`${base}/admin/session`, (c) =>
   c.json({ email: c.get("ownerEmail"), role: c.get("role") }));
 
 app.get(`${base}/admin/team`, async (c) => {
-  const members = await kv.getByPrefix("eb:team:");
-  return c.json({ members: members.sort((a, b) => a.email.localeCompare(b.email)) });
+  return c.json({ accounts: await listAccountReviews(db().auth.admin, kv, c.get("ownerEmail")) });
 });
 
 app.put(`${base}/admin/team`, async (c) => {
   const body = await c.req.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (email.length > 250 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-    !["admin", "moderator"].includes(body?.role)) {
-    return c.json({ error: "Enter a valid email and choose admin or moderator." }, 400);
-  }
-  if (email === c.get("ownerEmail")) {
-    return c.json({ error: "The owner's role cannot be changed." }, 400);
-  }
-  await kv.set(`eb:team:${email}`, {
-    email, role: body.role, updatedAt: new Date().toISOString(), grantedBy: c.get("ownerEmail"),
-  });
+  await approveAccount(db().auth.admin, kv, c.get("ownerEmail"), body?.userId, body?.role);
   return c.json({ ok: true });
 });
 
-app.delete(`${base}/admin/team/:email`, async (c) => {
-  const email = c.req.param("email").trim().toLowerCase();
-  if (email === c.get("ownerEmail")) return c.json({ error: "The owner cannot be removed." }, 400);
-  await kv.del(`eb:team:${email}`);
+app.delete(`${base}/admin/team/:userId`, async (c) => {
+  await deleteAccount(db().auth.admin, kv, c.get("ownerEmail"), c.req.param("userId"));
   return c.json({ ok: true });
 });
 

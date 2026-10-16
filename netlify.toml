@@ -1,11 +1,10 @@
 [build]
-  command = "corepack enable && pnpm install && pnpm build"
-  publish = "dist"
+command = "pnpm run check && pnpm run build"
+publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+NODE_VERSION = "22"
+PNPM_VERSION = "10.34.3"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# SPA redirects and indexing rules remain in public/_redirects and public/_headers.
+# GitHub Actions deploys the already-checked dist directory with --no-build.

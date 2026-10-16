@@ -1,0 +1,9 @@
+project_id = "iiuc-eb-club"
+
+[functions.make-server-ad6cf477]
+enabled = true
+entrypoint = "./functions/server/index.tsx"
+
+# Public content/form routes are intentionally public. Every /admin/* route
+# independently verifies the user's token and role with Supabase Auth.
+verify_jwt = false

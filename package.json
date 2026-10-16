@@ -7,7 +7,12 @@
     "build": "vite build",
     "build:lib": "vite build --config vite.config.lib.ts && tsc -p tsconfig.types.json",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "test:content": "node scripts/content-sync.test.mjs",
+    "test:permissions": "node supabase/functions/server/validation.test.mjs",
+    "test": "pnpm run test:content && pnpm run test:permissions",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm run test && pnpm run typecheck"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
@@ -26,5 +31,6 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vite": "^8.0.5"
-  }
+  },
+  "packageManager": "pnpm@10.34.3"
 }

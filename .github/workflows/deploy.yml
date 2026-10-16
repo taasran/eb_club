@@ -1,0 +1,88 @@
+name: Check and deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two production deployments at the same time.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests and TypeScript checks
+        run: pnpm run check
+
+      - name: Build production frontend
+        run: pnpm run build
+
+      # Pull requests are checked, but can never use production credentials.
+      - name: Check deployment credentials
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          missing=0
+          for name in NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID SUPABASE_ACCESS_TOKEN; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $name. See docs/deployment.md."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install Supabase CLI
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+
+      # Publish the API first so the new frontend never depends on a missing route.
+      - name: Deploy backend
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'ywwyzqlqmpcosiuszowt' }}
+        run: supabase functions deploy make-server-ad6cf477 --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Deploy frontend to the existing Netlify site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: >-
+          pnpm dlx netlify-cli@27.12.1 deploy
+          --no-build
+          --dir=dist
+          --prod
+          --site="$NETLIFY_SITE_ID"
+          --message="GitHub commit $GITHUB_SHA"

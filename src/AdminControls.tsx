@@ -13,6 +13,12 @@ const AdminControls = {
   Article: "article",
   Main: "main",
   Link: "a",
+  Aside: "aside",
+  Section: "section",
+  Img: "img",
+  H1: "h1",
+  H2: "h2",
+  Em: "em",
 } as const
 
 export default AdminControls

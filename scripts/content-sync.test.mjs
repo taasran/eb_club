@@ -94,6 +94,131 @@ const originalFetch = globalThis.fetch
 const json = (value, status = 200) =>
   new Response(JSON.stringify(value), { status })
 try {
+  const {
+    adminSignInUrl,
+    passwordResetUrl,
+    normalizeAdminEmail,
+    registerAccount,
+    requestPasswordReset,
+    saveResetPassword,
+  } = await import(compile("admin/onboarding"))
+  assert.equal(
+    normalizeAdminEmail(" Team+Club@Example.com "),
+    "team+club@example.com",
+  )
+  const profile = {
+    name: " New Applicant ",
+    matricId: " EB123 ",
+    email: " Applicant@Example.com ",
+    batch: " 26th ",
+  }
+  let signupArgs
+  const signupAuth = {
+    async signUp(args) {
+      signupArgs = args
+      return { error: null }
+    },
+  }
+  await registerAccount(
+    signupAuth,
+    profile,
+    "SafePassword123",
+    "SafePassword123",
+  )
+  assert.equal(signupArgs.email, "applicant@example.com")
+  assert.equal(signupArgs.password, "SafePassword123")
+  assert.equal(signupArgs.options.emailRedirectTo, adminSignInUrl)
+  assert.deepEqual(signupArgs.options.data, {
+    full_name: "New Applicant",
+    matric_id: "EB123",
+    batch: "26th",
+    club_access_request: true,
+  })
+  assert.equal("password" in signupArgs.options.data, false)
+  assert.equal("role" in signupArgs.options.data, false)
+  await assert.rejects(
+    registerAccount(
+      signupAuth,
+      { ...profile, matricId: "" },
+      "SafePassword123",
+      "SafePassword123",
+    ),
+    /Matric ID/,
+  )
+  await assert.rejects(
+    registerAccount(signupAuth, profile, "short", "short"),
+    /at least 8/,
+  )
+  await assert.rejects(
+    registerAccount(signupAuth, profile, "SafePassword123", "WrongPassword123"),
+    /do not match/,
+  )
+  await assert.rejects(
+    registerAccount(
+      {
+        async signUp() {
+          return { error: { message: "Signup disabled" } }
+        },
+      },
+      profile,
+      "SafePassword123",
+      "SafePassword123",
+    ),
+    /Signup disabled/,
+  )
+  let resetEmail
+  await requestPasswordReset(
+    {
+      async resetPasswordForEmail(email, options) {
+        resetEmail = { email, options }
+        return { error: null }
+      },
+    },
+    " Applicant@Example.com ",
+  )
+  assert.deepEqual(resetEmail, {
+    email: "applicant@example.com",
+    options: { redirectTo: passwordResetUrl },
+  })
+  let updatedPassword
+  const recoveryAuth = {
+    async getSession() {
+      return { data: { session: { user: { id: "account-id" } } }, error: null }
+    },
+    async updateUser(update) {
+      updatedPassword = update
+      return { error: null }
+    },
+  }
+  await saveResetPassword(recoveryAuth, "NewPassword123", "NewPassword123")
+  assert.deepEqual(updatedPassword, { password: "NewPassword123" })
+  updatedPassword = null
+  await assert.rejects(
+    saveResetPassword(
+      {
+        ...recoveryAuth,
+        async getSession() {
+          return { data: { session: null }, error: null }
+        },
+      },
+      "NewPassword123",
+      "NewPassword123",
+    ),
+    /invalid or expired/,
+  )
+  assert.equal(updatedPassword, null)
+  await assert.rejects(
+    requestPasswordReset(
+      {
+        async resetPasswordForEmail() {
+          return { error: { message: "Email rate limit exceeded" } }
+        },
+      },
+      "applicant@example.com",
+    ),
+    /Email rate limit/,
+  )
+
   let putBody
   let cache
   globalThis.fetch = async (_url, options) => {
@@ -196,6 +321,89 @@ try {
   assert.match(loadingAdmin, /Download latest project code/)
   assert.match(loadingAdmin, /href="\/downloads\/eb-club-source\.zip"/)
   assert.match(loadingAdmin, /download="eb-club-latest-source\.zip"/)
+  const authReact = write(
+    "authReact",
+    `
+    export function useState(initial) {
+      const value = typeof initial === "function" ? initial() : initial;
+      return [value === true ? false : value, () => {}];
+    }
+    export function useEffect() {}
+  `,
+  )
+  const { default: SignInPage } = await import(
+    compile("AdminPage", {
+      react: authReact,
+      "src/supabase.ts": supabase,
+      "src/EconomicsLoader.tsx": empty,
+      "src/useSiteContent.ts": hook,
+    })
+  )
+  const signInHtml = renderToStaticMarkup(createElement(SignInPage))
+  assert.match(signInHtml, /Forgot password/)
+  assert.match(signInHtml, /Create account/)
+  assert.doesNotMatch(signInHtml, /Email me a sign-in link/)
+  const modeReact = write(
+    "modeReact",
+    `
+    export function useState(initial) { return [initial === "signin" ? globalThis.__clubAuthMode : initial, () => {}]; }
+    export function useEffect() {}
+  `,
+  )
+  const { default: AccountAuth } = await import(
+    compile("admin/AdminAuth", {
+      react: modeReact,
+      "src/supabase.ts": supabase,
+    })
+  )
+  globalThis.__clubAuthMode = "signup"
+  const registrationHtml = renderToStaticMarkup(
+    createElement(AccountAuth, {
+      onAuthenticated: async () => ({ ok: false }),
+    }),
+  )
+  for (const label of [
+    "Full name",
+    "Matric ID",
+    "Batch",
+    "Confirm password",
+    "Create account &amp; request approval",
+  ])
+    assert(registrationHtml.includes(label), label)
+  globalThis.__clubAuthMode = "forgot"
+  const forgottenHtml = renderToStaticMarkup(
+    createElement(AccountAuth, {
+      onAuthenticated: async () => ({ ok: false }),
+    }),
+  )
+  assert.match(forgottenHtml, /Send password-reset email/)
+  assert.doesNotMatch(forgottenHtml, /type="password"/)
+  delete globalThis.__clubAuthMode
+  const teamReact = write(
+    "teamReact",
+    `
+    export function useState(initial) {
+      return [Array.isArray(initial) ? [{userId: "applicant-id", email: "friend@example.com", name: "Applicant", matricId: "EB123", batch: "26", role: null, status: "pending", createdAt: "2026-01-01", emailConfirmed: true}] : initial, () => {}];
+    }
+    export function useEffect() {}
+  `,
+  )
+  const { default: TeamAccess } = await import(
+    compile("AdminAccess", { react: teamReact })
+  )
+  const teamHtml = renderToStaticMarkup(
+    createElement(TeamAccess, {
+      ownerEmail: "owner@example.com",
+      request: async () => {
+        throw new Error("SSR must not request private data")
+      },
+    }),
+  )
+  assert.match(teamHtml, /Approve as admin/)
+  assert.match(teamHtml, /Approve as moderator/)
+  assert.match(teamHtml, /Reject &amp; delete account/)
+  assert.match(teamHtml, /EB123/)
+  assert.doesNotMatch(teamHtml, /Copy login link|Open email draft/)
   globalThis.__clubContentFixture = fixture
   let html = renderToStaticMarkup(createElement(App))
   assert.match(html, /Our updated club/)
@@ -289,7 +497,7 @@ try {
   assert.equal(globalThis.__clubReads, 6)
   assert.equal(tick, undefined)
   console.log(
-    "PASS: verified persistence, uncached reads, errors, saved/deleted records, 32-member rendering, focus/storage/save/interval refresh and cleanup.",
+    "PASS: registration/password recovery, auth/approval rendering, verified persistence, records, refresh and cleanup.",
   )
 } finally {
   globalThis.fetch = originalFetch

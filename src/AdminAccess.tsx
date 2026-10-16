@@ -1,95 +1,254 @@
-import { useEffect, useState } from "react";
-import AdminControls from "./AdminControls";
+import { useEffect, useState } from "react"
+import AdminControls from "./AdminControls"
 
-const { Button, Input, Label, Span, Div, Form, P, Strong } = AdminControls;
-type Member = { email: string; role: "admin" | "moderator" };
-type Request = (path: string, init?: RequestInit) => Promise<Response>;
-
-export function PasswordField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [visible, setVisible] = useState(false);
-  return <Div className="admin-field">
-    <Label htmlFor="admin-password" className="admin-field-label">Password</Label>
-    <Div className="flex items-center gap-2">
-      <Input id="admin-password" type={visible ? "text" : "password"} value={value}
-        autoComplete="current-password" onChange={event => onChange(event.target.value)}
-        placeholder="Enter your password" required />
-      <Button type="button" className="admin-btn ghost" aria-controls="admin-password"
-        aria-pressed={visible} aria-label={visible ? "Hide password" : "Show password"}
-        onClick={() => setVisible(current => !current)}>{visible ? "Hide" : "Show"}</Button>
-    </Div>
-  </Div>;
+const { Button, Div, P, Strong, Span, Small } = AdminControls
+type Account = {
+  userId: string
+  email: string
+  name: string
+  matricId: string
+  batch: string
+  role: "admin" | "moderator" | null
+  status: "pending" | "approved" | "removed"
+  emailConfirmed: boolean
+  createdAt: string
 }
+type Request = (path: string, init?: RequestInit) => Promise<Response>
 
-export default function AdminAccess({ request, ownerEmail }: { request: Request; ownerEmail: string }) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Member["role"]>("moderator");
-  const [loaded, setLoaded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
+export default function AdminAccess({
+  request,
+  ownerEmail,
+}: {
+  request: Request
+  ownerEmail: string
+}) {
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [filter, setFilter] = useState<"pending" | "approved" | "all">(
+    "pending",
+  )
+  const [loaded, setLoaded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState("")
+  const [failed, setFailed] = useState(false)
   const load = async () => {
-    const response = await request("/admin/team");
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.error ?? "Unable to load team access.");
-    setMembers(body.members);
-    setLoaded(true);
-  };
+    const response = await request("/admin/team")
+    const body = await response.json().catch(() => null)
+    if (!response.ok)
+      throw new Error(body?.error ?? "Unable to load account requests.")
+    if (!Array.isArray(body?.accounts))
+      throw new Error(
+        "Deploy the latest backend to load the new account approval system.",
+      )
+    setAccounts(body.accounts)
+    setLoaded(true)
+  }
   const perform = async (action: () => Promise<void>) => {
-    setBusy(true); setMessage(""); setError(false);
-    try { await action(); }
-    catch (error) { setError(true); setMessage(error instanceof Error ? error.message : "Please try again."); }
-    finally { setBusy(false); }
-  };
+    if (busy) return
+    setBusy(true)
+    setMessage("")
+    setFailed(false)
+    try {
+      await action()
+    } catch (error) {
+      setFailed(true)
+      setMessage(error instanceof Error ? error.message : "Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
   useEffect(() => {
-    void perform(load);
-  }, []);
-  return <Div className="admin-stack">
-    <Div className="admin-card">
-      <Strong className="admin-card-title">Team access</Strong>
-      <P className="admin-muted">Only you, the owner, can grant or revoke access. Admins can manage content and the private inbox. Moderators can edit website content and view traffic, but cannot access the inbox or manage the team.</P>
-      <P className="admin-muted">Owner · {ownerEmail} — protected; cannot be removed.</P>
-    </Div>
-    <Form className="admin-card" onSubmit={event => {
-      event.preventDefault();
-      void perform(async () => {
-        const response = await request("/admin/team", { method: "PUT", body: JSON.stringify({ email, role }) });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? "Unable to grant access.");
-        await load(); setEmail(""); setMessage("Access saved. They can sign in using this email after confirming their account.");
-      });
-    }}>
-      <Label className="admin-field"><Span>Email address</Span>
-        <Input type="email" required autoComplete="off" value={email} maxLength={250}
-          placeholder="teammate@example.com" onChange={event => setEmail(event.target.value)} />
-      </Label>
-      <Div className="admin-segment" role="group" aria-label="Team role">
-        {(["admin", "moderator"] as const).map(option =>
-          <Button type="button" key={option} className={role === option ? "active" : ""}
-            aria-pressed={role === option} onClick={() => setRole(option)}>{option === "admin" ? "Admin" : "Moderator"}</Button>)}
+    void perform(load)
+  }, [])
+  const approve = (account: Account, role: "admin" | "moderator") => {
+    if (
+      !window.confirm(
+        `Approve ${account.name || account.email} as ${role}? Review their identity details before continuing.`,
+      )
+    )
+      return
+    void perform(async () => {
+      const response = await request("/admin/team", {
+        method: "PUT",
+        body: JSON.stringify({ userId: account.userId, role }),
+      })
+      const body = await response.json().catch(() => null)
+      if (!response.ok)
+        throw new Error(body?.error ?? "Unable to approve this account.")
+      await load()
+      setMessage(
+        `Approved as ${role}. They can sign in with the email and password they registered. Email confirmation is still required when enabled in Supabase.`,
+      )
+    })
+  }
+  const remove = (account: Account) => {
+    if (
+      !window.confirm(
+        `Permanently delete ${account.email}'s Auth account and revoke dashboard access? This cannot be undone. Their posts/content will not be deleted.`,
+      )
+    )
+      return
+    void perform(async () => {
+      const response = await request(
+        `/admin/team/${encodeURIComponent(account.userId)}`,
+        { method: "DELETE" },
+      )
+      const body = await response.json().catch(() => null)
+      if (!response.ok)
+        throw new Error(body?.error ?? "Unable to delete this account.")
+      await load()
+      setMessage("Account deleted and dashboard access revoked.")
+    })
+  }
+  const pending = accounts.filter(
+    (account) => account.status === "pending",
+  ).length
+  const visible = accounts.filter(
+    (account) => filter === "all" || account.status === filter,
+  )
+  return (
+    <Div className="admin-stack">
+      <Div className="admin-card">
+        <Strong className="admin-card-title">
+          Account requests & approvals
+        </Strong>
+        <P className="admin-muted">
+          New users register their name, Matric ID, email, batch and password.
+          Review their details here, then approve them as an admin or moderator,
+          or delete the account. Passwords are never shown or stored in this
+          review list.
+        </P>
+        <P className="admin-muted">
+          Owner · {ownerEmail} — protected. Only the owner can review accounts.
+          Profile details are self-reported; verify them before granting access.
+        </P>
+        <Div className="flex flex-wrap items-center justify-between gap-3">
+          <Div
+            className="admin-segment"
+            role="group"
+            aria-label="Account status"
+          >
+            {(["pending", "approved", "all"] as const).map((option) => (
+              <Button
+                key={option}
+                type="button"
+                aria-pressed={filter === option}
+                className={filter === option ? "active" : ""}
+                onClick={() => setFilter(option)}
+              >
+                {option === "pending"
+                  ? `Pending (${pending})`
+                  : option === "approved"
+                    ? "Approved"
+                    : "All accounts"}
+              </Button>
+            ))}
+          </Div>
+          <Button
+            type="button"
+            className="admin-btn ghost"
+            disabled={busy}
+            onClick={() => void perform(load)}
+          >
+            {busy ? "Loading…" : "Refresh requests"}
+          </Button>
+        </Div>
       </Div>
-      <P className="admin-muted">Adding an existing email updates its role. This grants access only—not an account or an email invitation. Your teammate must create an account on the sign-in page and confirm their own email. Do not share passwords.</P>
-      <Button className="admin-btn primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Grant / update access"}</Button>
-    </Form>
-    {message && <Div className={`admin-status ${error ? "error" : "success"}`} role="status">{message}</Div>}
-    <Div className="admin-card">
-      <Button type="button" className="admin-btn ghost" disabled={busy}
-        onClick={() => void perform(load)}>{loaded ? "Refresh team list" : "Load team list"}</Button>
-      {loaded && members.length === 0 && <P className="admin-muted">No additional admins or moderators yet.</P>}
-      {members.map(member => <Div className="flex flex-wrap items-center justify-between gap-3" key={member.email}>
-        <Div className="min-w-0 break-words"><Strong>{member.email}</Strong><P className="admin-muted">{member.role === "admin" ? "Admin" : "Moderator"}</P></Div>
-        <Button type="button" className="admin-btn ghost" disabled={busy}
-          aria-label={`Remove access for ${member.email}`}
-          onClick={() => {
-            if (!window.confirm(`Remove dashboard access for ${member.email}?`)) return;
-            void perform(async () => {
-              const response = await request(`/admin/team/${encodeURIComponent(member.email)}`, { method: "DELETE" });
-              const body = await response.json();
-              if (!response.ok) throw new Error(body.error ?? "Unable to remove access.");
-              await load(); setMessage("Access removed. Further admin requests from this account will be denied.");
-            });
-          }}>Remove access</Button>
-      </Div>)}
+      {message && (
+        <Div
+          className={`admin-status ${failed ? "error" : "success"}`}
+          role="status"
+        >
+          {message}
+        </Div>
+      )}
+      {loaded && visible.length === 0 && (
+        <Div className="admin-empty">
+          {filter === "pending"
+            ? "No pending requests. New registrations will appear here."
+            : "No accounts in this view."}
+        </Div>
+      )}
+      {visible.map((account) => (
+        <Div className="admin-card" key={account.userId}>
+          <Div className="flex flex-wrap items-center justify-between gap-3">
+            <Strong className="admin-card-title">
+              {account.name || "Existing account"}
+            </Strong>
+            <Span className="admin-badge">
+              {account.status === "approved"
+                ? `Approved · ${account.role}`
+                : account.status === "removed"
+                  ? "Access removed · deletion needs retry"
+                  : "Pending owner approval"}
+            </Span>
+          </Div>
+          <Div className="admin-grid two">
+            <P className="admin-muted">
+              <Strong>Email</Strong>
+              <Span className="block break-words">{account.email}</Span>
+            </P>
+            <P className="admin-muted">
+              <Strong>Matric ID</Strong>
+              <Span className="block">
+                {account.matricId || "Not provided (existing account)"}
+              </Span>
+            </P>
+            <P className="admin-muted">
+              <Strong>Batch</Strong>
+              <Span className="block">
+                {account.batch || "Not provided (existing account)"}
+              </Span>
+            </P>
+            <P className="admin-muted">
+              <Strong>Email verification</Strong>
+              <Span className="block">
+                {account.emailConfirmed ? "Confirmed" : "Confirmation pending"}
+              </Span>
+            </P>
+          </Div>
+          <Small className="admin-muted">
+            Registered {new Date(account.createdAt).toLocaleString()}
+          </Small>
+          <Div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              className="admin-btn primary"
+              disabled={
+                busy ||
+                (account.status === "approved" && account.role === "admin")
+              }
+              onClick={() => approve(account, "admin")}
+            >
+              {account.status === "approved"
+                ? "Set as admin"
+                : "Approve as admin"}
+            </Button>
+            <Button
+              type="button"
+              className="admin-btn ghost"
+              disabled={
+                busy ||
+                (account.status === "approved" && account.role === "moderator")
+              }
+              onClick={() => approve(account, "moderator")}
+            >
+              {account.status === "approved"
+                ? "Set as moderator"
+                : "Approve as moderator"}
+            </Button>
+            <Button
+              type="button"
+              className="admin-link danger"
+              disabled={busy}
+              onClick={() => remove(account)}
+            >
+              {account.status === "pending"
+                ? "Reject & delete account"
+                : "Delete account"}
+            </Button>
+          </Div>
+        </Div>
+      ))}
     </Div>
-  </Div>;
+  )
 }

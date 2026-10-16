@@ -1,7 +1,8 @@
-import { FormEvent, ReactNode, useEffect, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import EconomicsLoader from "./EconomicsLoader"
 import { supabase, serverUrl, publicAnonKey } from "./supabase"
-import AdminAccess, { PasswordField } from "./AdminAccess"
+import AdminAccess from "./AdminAccess"
+import AdminAuth from "./admin/AdminAuth"
 import AdminControls from "./AdminControls"
 import { readContent, publishContent, type SiteContent } from "./contentClient"
 import { announceContentUpdate } from "./useSiteContent"
@@ -13,7 +14,7 @@ import {
   type Tab,
 } from "./admin/config"
 
-const { Button, P, Main, Div, Link } = AdminControls
+const { P, Main, Div, Link } = AdminControls
 
 type Content = SiteContent
 
@@ -326,8 +327,6 @@ function formatDate(value: string) {
 }
 
 export default function AdminPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [content, setContent] = useState<Content>(defaultContent)
   const [savedSnapshot, setSavedSnapshot] = useState(
     JSON.stringify(defaultContent),
@@ -456,6 +455,12 @@ export default function AdminPage() {
       const response = await request("/admin/session")
       if (!response.ok) {
         const body = await response.json().catch(() => null)
+        if (response.status === 403) {
+          notify(
+            body?.error ?? "Your account is awaiting owner approval.",
+            "error",
+          )
+        }
         return {
           ok: false,
           error:
@@ -512,43 +517,6 @@ export default function AdminPage() {
     return () => window.removeEventListener("beforeunload", warn)
   }, [dirty])
 
-  const signIn = async (event: FormEvent) => {
-    event.preventDefault()
-    setBusy(true)
-    notify("Signing in…")
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) {
-      setBusy(false)
-      notify(error.message, "error")
-      return
-    }
-    const admin = await loadAdmin()
-    setBusy(false)
-    if (admin.ok) notify("Welcome back. You're signed in.", "success")
-    else
-      notify(`Signed in, but the dashboard is locked: ${admin.error}`, "error")
-  }
-
-  const signUp = async () => {
-    if (!email || !password) {
-      notify("Enter an email and password first.", "error")
-      return
-    }
-    setBusy(true)
-    notify("Creating your admin account…")
-    const { error } = await supabase.auth.signUp({ email, password })
-    setBusy(false)
-    notify(
-      error
-        ? error.message
-        : "Account created. Confirm your email if requested, then sign in.",
-      error ? "error" : "success",
-    )
-  }
-
   const signOut = async () => {
     if (dirty && !window.confirm("You have unsaved changes. Sign out anyway?"))
       return
@@ -556,7 +524,6 @@ export default function AdminPage() {
     setIsAdmin(false)
     setAdminRole("moderator")
     setSubmissions([])
-    setPassword("")
     notify("")
   }
 
@@ -695,13 +662,6 @@ export default function AdminPage() {
     archive: content.archiveYears.length,
   }
 
-  const statusBanner = status && (
-    <div className={`admin-status ${statusTone}`} role="status">
-      {statusTone === "success" && <AdminIcon name="check" />}
-      <span>{status}</span>
-    </div>
-  )
-
   if (checking)
     return (
       <Main className="admin-shell admin-center">
@@ -722,98 +682,7 @@ export default function AdminPage() {
     )
 
   if (!isAdmin)
-    return (
-      <main className="admin-shell admin-auth">
-        <aside className="admin-auth-brand">
-          <a href="/" className="admin-brand light">
-            <img src="/images/club-logo.png" alt="" />
-            <span>
-              Economics & Banking Club<small>IIUC · ADMIN</small>
-            </span>
-          </a>
-          <div>
-            <p className="admin-eyebrow light">CONTENT STUDIO</p>
-            <h1>
-              Keep the club's story <em>current.</em>
-            </h1>
-            <p>
-              Update the home page, events, executive committee and leadership
-              archive — all from one place.
-            </p>
-          </div>
-          <small>Only authorised club admins can make changes.</small>
-        </aside>
-        <section className="admin-auth-form">
-          <form onSubmit={signIn}>
-            <p className="admin-eyebrow">OWNER · ADMIN SIGN IN</p>
-            <h2>Welcome back.</h2>
-            <P className="admin-muted">
-              Sign in with your authorised owner, admin or moderator account.
-            </P>
-            <Field
-              label="Email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-            />
-            <PasswordField value={password} onChange={setPassword} />
-            <button
-              className="admin-btn primary block"
-              type="submit"
-              disabled={busy}
-            >
-              {busy ? (
-                <>
-                  <EconomicsLoader variant="inline" /> Signing in…
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </button>
-            {statusBanner}
-            <div className="admin-divider">
-              <span>First time here?</span>
-            </div>
-            <Button
-              className="admin-btn ghost block"
-              type="button"
-              onClick={signUp}
-              disabled={busy}
-            >
-              Create account
-            </Button>
-            <P className="admin-muted">
-              Creating an account does not grant dashboard access. Ask the owner
-              to authorise your email.
-            </P>
-            <a
-              className="admin-btn primary block"
-              href="/downloads/iiuc-eb-club-figma-design.svg"
-              download="iiuc-eb-club-figma-design.svg"
-            >
-              <AdminIcon name="download" /> Download Figma Design (.svg)
-            </a>
-            <a
-              className="admin-btn ghost block"
-              href="/downloads/iiuc-eb-club-design-package.zip"
-              download="iiuc-eb-club-design-package.zip"
-            >
-              <AdminIcon name="download" /> Download Design Package (.zip)
-            </a>
-            <a
-              className="admin-btn primary block"
-              href="/downloads/eb-club-source.zip"
-              download="iiuc-eb-club-full-website.zip"
-            >
-              <AdminIcon name="download" /> Download latest project code (.zip)
-            </a>
-            <a className="admin-link center" href="/">
-              ← Back to website
-            </a>
-          </form>
-        </section>
-      </main>
-    )
+    return <AdminAuth onAuthenticated={loadAdmin} initialStatus={status} />
 
   const activeTab = tabs.find((item) => item.id === tab)!
   const people = content.leadership[leaderSlug] ?? []

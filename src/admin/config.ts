@@ -77,8 +77,8 @@ type AdminTab = {
 export const tabs: AdminTab[] = [
   {
     id: "team",
-    label: "Team access",
-    hint: "Admins & moderators",
+    label: "Account requests",
+    hint: "Review, approve & remove",
     icon: "users",
   },
   {

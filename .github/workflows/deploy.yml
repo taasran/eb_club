@@ -23,7 +23,8 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: false 
+          lfs: true
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

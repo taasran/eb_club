@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# Never run two production deployments at the same time.
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
@@ -18,7 +19,6 @@ jobs:
   check-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -43,6 +43,7 @@ jobs:
       - name: Build production frontend
         run: pnpm run build
 
+      # Pull requests are checked, but can never use production credentials.
       - name: Check deployment credentials
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
@@ -63,8 +64,9 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: supabase/setup-cli@v1
         with:
-          version: "2.121.0"
+          version: 2.121.0
 
+      # Publish the API first so the new frontend never depends on a missing route.
       - name: Deploy backend
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
@@ -77,10 +79,12 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        # The package exports both netlify and ntl; select netlify explicitly.
         run: >-
           pnpm --package=netlify-cli@27.12.1 dlx netlify deploy
           --no-build
           --dir=dist
+          --functions=netlify/functions
           --prod
           --site="$NETLIFY_SITE_ID"
           --message="GitHub commit $GITHUB_SHA"

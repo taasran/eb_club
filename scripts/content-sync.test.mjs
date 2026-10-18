@@ -318,9 +318,18 @@ try {
     })
   )
   const loadingAdmin = renderToStaticMarkup(createElement(AdminPage))
-  assert.match(loadingAdmin, /Download latest project code/)
-  assert.match(loadingAdmin, /href="\/downloads\/eb-club-source\.zip"/)
-  assert.match(loadingAdmin, /download="eb-club-latest-source\.zip"/)
+  assert.doesNotMatch(
+    loadingAdmin,
+    /Download latest project code|downloads\/eb-club-source|project-source/,
+  )
+  const { default: ProjectDownload } = await import(
+    compile("admin/ProjectDownload", { "src/supabase.ts": supabase })
+  )
+  const downloadCard = renderToStaticMarkup(createElement(ProjectDownload))
+  assert.match(downloadCard, /Latest project code/)
+  assert.match(downloadCard, /type="button"/)
+  assert.doesNotMatch(downloadCard, /href="\/downloads\/eb-club-source\.zip"/)
+  assert.match(downloadCard, /not a database/)
   const authReact = write(
     "authReact",
     `
@@ -423,8 +432,26 @@ try {
   }
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /Published Member 32/)
-  assert.match(html, /28 profiles/)
-  assert.match(html, /Profile 5 \/ 32/)
+  assert.match(html, /32 profiles/)
+  assert.match(html, /Profile 1 \/ 32/)
+  globalThis.__clubContentFixture = {
+    ...fixture,
+    executives: Array.from({ length: 4 }, (_, index) => ({
+      ...fixture.executives[0],
+      name: `Leader ${index + 1}`,
+      studentId: `EB${index + 1}`,
+    })),
+  }
+  html = renderToStaticMarkup(createElement(App))
+  const completeRoster = html.split("CLUB EXECUTIVES")[1]
+  assert(
+    completeRoster,
+    "The executive section must not disappear with only four profiles.",
+  )
+  for (let index = 1; index <= 4; index++)
+    assert(completeRoster.includes(`Leader ${index}`))
+  assert.match(completeRoster, /ID: EB1/)
+  assert.match(completeRoster, /Pause auto-slide/)
 
   globalThis.__clubContentFixture = { ...fixture, events: [], executives: [] }
   html = renderToStaticMarkup(createElement(App))
@@ -440,6 +467,89 @@ try {
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /No committee sessions are currently published/)
   assert.doesNotMatch(html, /Name to be announced/)
+  // Run a complete auto-slide/wrap cycle and verify all motion pause conditions.
+  globalThis.window = new EventTarget()
+  globalThis.document = new EventTarget()
+  document.hidden = false
+  window.innerHeight = 900
+  window.matchMedia = () => ({
+    matches: globalThis.__carouselPause === "motion",
+    addEventListener() {},
+    removeEventListener() {},
+  })
+  globalThis.getComputedStyle = () => ({ columnGap: "20px" })
+  const timers = []
+  const cleared = []
+  window.setInterval = (callback, delay) => {
+    timers.push({ callback, delay })
+    return timers.length
+  }
+  window.clearInterval = (id) => cleared.push(id)
+  let offscreen = false
+  const scrolls = []
+  globalThis.__carouselTrack = {
+    firstElementChild: { offsetWidth: 280 },
+    scrollLeft: 0,
+    clientWidth: 900,
+    scrollWidth: 1200,
+    getBoundingClientRect: () => ({
+      top: offscreen ? 1000 : 0,
+      bottom: offscreen ? 1200 : 200,
+    }),
+    scrollTo(options) {
+      scrolls.push(options)
+      this.scrollLeft = options.left
+    },
+  }
+  const carouselReact = write(
+    "carouselReact",
+    `
+    export function useState(initial) {
+      const index = ++globalThis.__carouselState;
+      const paused = (index === 2 && globalThis.__carouselPause === "hover") ||
+        (index === 3 && globalThis.__carouselPause === "focus") ||
+        (index === 4 && globalThis.__carouselPause === "motion");
+      return [paused ? true : initial, () => {}];
+    }
+    export function useRef() { return {current: globalThis.__carouselTrack}; }
+    export function useEffect(effect) { globalThis.__carouselEffects.push(effect); }
+  `,
+  )
+  const carousel = await import(
+    compile("components/ExecutiveShowcase", { react: carouselReact })
+  )
+  assert.equal(carousel.nextExecutiveOffset(0, 900, 1200, 300), 300)
+  assert.equal(carousel.nextExecutiveOffset(300, 900, 1200, 300), 0)
+  assert.equal(carousel.nextExecutiveOffset(0, 900, 600, 300), 0)
+  for (const pause of ["", "hover", "focus", "motion"]) {
+    globalThis.__carouselPause = pause
+    globalThis.__carouselState = 0
+    globalThis.__carouselEffects = []
+    timers.length = 0
+    carousel.default({
+      profiles: Array.from({ length: 4 }, () => fixture.executives[0]),
+    })
+    const cleanups = globalThis.__carouselEffects.map((effect) => effect())
+    assert.equal(timers.length, pause ? 0 : 1)
+    if (!pause) {
+      assert.equal(timers[0].delay, 4000)
+      timers[0].callback()
+      assert.deepEqual(scrolls.at(-1), { left: 300, behavior: "smooth" })
+      timers[0].callback()
+      assert.deepEqual(scrolls.at(-1), { left: 0, behavior: "smooth" })
+      const count = scrolls.length
+      document.hidden = true
+      timers[0].callback()
+      document.hidden = false
+      offscreen = true
+      timers[0].callback()
+      offscreen = false
+      assert.equal(scrolls.length, count)
+    }
+    cleanups.forEach((cleanup) => cleanup?.())
+  }
+  assert(cleared.length > 0)
+  delete globalThis.getComputedStyle
   // Exercise update subscriptions without a browser or an authenticated account.
   globalThis.window = new EventTarget()
   globalThis.document = new EventTarget()
@@ -497,7 +607,7 @@ try {
   assert.equal(globalThis.__clubReads, 6)
   assert.equal(tick, undefined)
   console.log(
-    "PASS: registration/password recovery, auth/approval rendering, verified persistence, records, refresh and cleanup.",
+    "PASS: registration/recovery, approval/download rendering, four-person executive roster, auto-slide/wrap/pause behavior, content refresh and cleanup.",
   )
 } finally {
   globalThis.fetch = originalFetch
@@ -509,5 +619,13 @@ try {
   delete globalThis.__clubReads
   delete globalThis.__clubHookValue
   delete globalThis.__clubHookCleanup
+  delete globalThis.getComputedStyle
+  for (const name of [
+    "__carouselTrack",
+    "__carouselPause",
+    "__carouselState",
+    "__carouselEffects",
+  ])
+    delete globalThis[name]
   fs.rmSync(dir, { recursive: true, force: true })
 }

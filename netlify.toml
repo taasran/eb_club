@@ -6,5 +6,9 @@ publish = "dist"
 NODE_VERSION = "22"
 PNPM_VERSION = "10.34.3"
 
+[functions]
+directory = "netlify/functions"
+node_bundler = "esbuild"
+
 # SPA redirects and indexing rules remain in public/_redirects and public/_headers.
 # GitHub Actions deploys the already-checked dist directory with --no-build.

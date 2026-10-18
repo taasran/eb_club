@@ -17,12 +17,14 @@ export default function ExecutiveCard({
   index,
   person,
   total,
+  leadership = index < 4,
 }: {
   role: string
   description: string
   index: number
   person?: ManagedExecutive
   total: number
+  leadership?: boolean
 }) {
   const name =
     person?.name?.trim() && person.name !== "Name to be announced"
@@ -37,7 +39,7 @@ export default function ExecutiveCard({
   return (
     <Article
       className={
-        index < 4 ? "executive-card leadership-card" : "executive-card"
+        leadership ? "executive-card leadership-card" : "executive-card"
       }
       aria-label={`${role}, profile ${index + 1} of ${total}`}
     >

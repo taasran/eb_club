@@ -2,6 +2,7 @@ import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import siteConfiguration from './.figma/make/site.json'
 
@@ -24,6 +25,7 @@ react(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
+      projectSourcePreviewEndpoint(),
     ],
     resolve: {
       alias: {
@@ -37,6 +39,7 @@ react(),
       watch: {
         ignored: [
           '**/.figma/**',
+          '**/private-downloads/**',
 ],
       },
     },
@@ -46,6 +49,50 @@ react(),
     },
   }
 })
+
+/**
+ * Dev-only twin of netlify/functions/project-source.mjs. It builds a fresh
+ * snapshot of the current workspace on every request and uses the same
+ * Supabase role check, so approved admins can download code from the preview.
+ */
+function projectSourcePreviewEndpoint(): Plugin {
+  const ROUTE = '/.netlify/functions/project-source'
+  return {
+    name: 'eb-club-project-source-preview',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const url = new URL(req.url || '/', 'http://localhost')
+        if (url.pathname !== ROUTE) return next()
+        try {
+          const load = (file: string) => import(/* @vite-ignore */ pathToFileURL(path.resolve(__dirname, file)).href)
+          const { serveProjectSource } = await load('netlify/lib/project-source.mjs')
+          const { exportProjectSource } = await load('scripts/export-source.mjs')
+          let snapshot: { info: unknown; archive: Uint8Array } | undefined
+          const build = () => (snapshot ??= exportProjectSource(__dirname, { write: false }))
+          const result = await serveProjectSource(
+            {
+              httpMethod: req.method,
+              headers: req.headers,
+              queryStringParameters: Object.fromEntries(url.searchParams),
+            },
+            {
+              get info() {
+                return build().info
+              },
+              archive: () => Buffer.from(build().archive).toString('base64'),
+            },
+          )
+          res.statusCode = result.statusCode
+          for (const [key, value] of Object.entries(result.headers)) res.setHeader(key, value as string)
+          res.end(result.isBase64Encoded ? Buffer.from(result.body, 'base64') : result.body)
+        } catch (error) {
+          next(error as Error)
+        }
+      })
+    },
+  }
+}
 
 type FigmaSiteConfiguration = {
   title?: string

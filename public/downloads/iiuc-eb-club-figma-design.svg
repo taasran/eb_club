@@ -1,0 +1,291 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="3600" viewBox="0 0 3200 3600" fill="none">
+  <rect width="3200" height="3600" fill="#EAE6DF"/>
+
+  <!-- ================= FRAME 1: DESIGN SYSTEM & TOKENS (LEFT) ================= -->
+  <g id="Frame 01 - Design System and Tokens" transform="translate(80, 80)">
+    <rect width="1200" height="1680" rx="24" fill="#F7F4ED" stroke="#D8D0C2" stroke-width="2"/>
+    
+    <!-- Header -->
+    <g id="DS Header" transform="translate(60, 60)">
+      <text x="0" y="24" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="13" font-weight="600" letter-spacing="2">DESIGN SYSTEM &amp; BRAND KIT</text>
+      <text x="0" y="76" fill="#102820" font-family="Georgia, serif" font-size="44" font-weight="700">IIUC Economics &amp; Banking Club</text>
+      <text x="0" y="114" fill="#4A5D55" font-family="Inter, sans-serif" font-size="18">Owner &amp; Designer: Tasranur Rahaman (Batch 26th · EB253022)</text>
+      <line x1="0" y1="146" x2="1080" y2="146" stroke="#DED6C6" stroke-width="1.5"/>
+    </g>
+
+    <!-- Color Palette -->
+    <g id="Color Palette" transform="translate(60, 240)">
+      <text x="0" y="24" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">1. Brand Color Tokens</text>
+      
+      <g id="Swatch - Primary Emerald" transform="translate(0, 56)">
+        <rect width="240" height="160" rx="16" fill="#163D32"/>
+        <text x="20" y="115" fill="#F7F4ED" font-family="Inter, sans-serif" font-size="16" font-weight="600">Primary Emerald</text>
+        <text x="20" y="140" fill="#B7C9C2" font-family="monospace" font-size="14">#163D32</text>
+      </g>
+
+      <g id="Swatch - Deep Forest" transform="translate(270, 56)">
+        <rect width="240" height="160" rx="16" fill="#0D261F"/>
+        <text x="20" y="115" fill="#F7F4ED" font-family="Inter, sans-serif" font-size="16" font-weight="600">Deep Forest</text>
+        <text x="20" y="140" fill="#9EB5AD" font-family="monospace" font-size="14">#0D261F</text>
+      </g>
+
+      <g id="Swatch - Warm Cream" transform="translate(540, 56)">
+        <rect width="240" height="160" rx="16" fill="#F7F4ED" stroke="#D5CBB8" stroke-width="2"/>
+        <text x="20" y="115" fill="#102820" font-family="Inter, sans-serif" font-size="16" font-weight="600">Warm Parchment</text>
+        <text x="20" y="140" fill="#4A5D55" font-family="monospace" font-size="14">#F7F4ED</text>
+      </g>
+
+      <g id="Swatch - Heritage Gold" transform="translate(810, 56)">
+        <rect width="240" height="160" rx="16" fill="#C89D54"/>
+        <text x="20" y="115" fill="#102820" font-family="Inter, sans-serif" font-size="16" font-weight="600">Heritage Gold</text>
+        <text x="20" y="140" fill="#2A2111" font-family="monospace" font-size="14">#C89D54</text>
+      </g>
+    </g>
+
+    <!-- Typography -->
+    <g id="Typography Scale" transform="translate(60, 520)">
+      <text x="0" y="24" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">2. Typography Hierarchy</text>
+      <rect x="0" y="50" width="1080" height="360" rx="18" fill="#FFFFFF" stroke="#E2DACB"/>
+      
+      <text x="36" y="102" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="600" letter-spacing="1.8">DISPLAY / HERO SERIF — 56PX</text>
+      <text x="36" y="156" fill="#102820" font-family="Georgia, serif" font-size="48" font-weight="700">Where curious minds meet possibility.</text>
+
+      <text x="36" y="214" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="600" letter-spacing="1.8">SECTION HEADING — 36PX</text>
+      <text x="36" y="256" fill="#102820" font-family="Georgia, serif" font-size="32" font-weight="700">Built for thinkers, learners, and future leaders.</text>
+
+      <text x="36" y="310" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="600" letter-spacing="1.8">BODY COPY — 17PX</text>
+      <text x="36" y="344" fill="#4A5D55" font-family="Inter, sans-serif" font-size="17">A student community for economics and banking learning, activities and leadership at IIUC.</text>
+    </g>
+
+    <!-- UI Components -->
+    <g id="UI Components" transform="translate(60, 950)">
+      <text x="0" y="24" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">3. Buttons &amp; Cards</text>
+      
+      <g id="Primary Button" transform="translate(0, 56)">
+        <rect width="230" height="54" rx="27" fill="#163D32"/>
+        <text x="34" y="33" fill="#F7F4ED" font-family="Inter, sans-serif" font-size="16" font-weight="600">Become a member →</text>
+      </g>
+
+      <g id="Secondary Button" transform="translate(254, 56)">
+        <rect width="240" height="54" rx="27" fill="#FFFFFF" stroke="#163D32" stroke-width="1.5"/>
+        <text x="34" y="33" fill="#163D32" font-family="Inter, sans-serif" font-size="16" font-weight="600">Explore our activities</text>
+      </g>
+
+      <g id="Gold Accent Badge" transform="translate(518, 56)">
+        <rect width="260" height="54" rx="27" fill="#EFE8D8" stroke="#C89D54" stroke-width="1.5"/>
+        <circle cx="30" cy="27" r="5" fill="#C89D54"/>
+        <text x="48" y="32" fill="#6E521F" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">LEARN. CONNECT. LEAD.</text>
+      </g>
+
+      <!-- Sample Component Card -->
+      <g id="Component Card Sample" transform="translate(0, 146)">
+        <rect width="520" height="240" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="48" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">LEARNING</text>
+        <text x="32" y="92" fill="#102820" font-family="Georgia, serif" font-size="28" font-weight="700">Ideas that go beyond the classroom.</text>
+        <text x="32" y="136" fill="#4A5D55" font-family="Inter, sans-serif" font-size="16">Explore economic issues, financial markets, and banking</text>
+        <text x="32" y="160" fill="#4A5D55" font-family="Inter, sans-serif" font-size="16">through seminars and thoughtful conversations.</text>
+        <text x="32" y="206" fill="#163D32" font-family="Inter, sans-serif" font-size="14" font-weight="600">Seminars &amp; discussions →</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= FRAME 2: DESKTOP HOME PAGE (1440px) ================= -->
+  <g id="Frame 02 - Desktop Home Page (1440px)" transform="translate(1360, 80)">
+    <rect width="1440" height="3400" rx="24" fill="#F7F4ED" stroke="#D8D0C2" stroke-width="2"/>
+
+    <!-- Topbar -->
+    <g id="Topbar">
+      <rect width="1440" height="44" rx="24" fill="#0D261F"/>
+      <text x="80" y="27" fill="#D5E2DC" font-family="Inter, sans-serif" font-size="13">A community of curious minds. A future of possibilities.</text>
+      <text x="1060" y="27" fill="#C89D54" font-family="Inter, sans-serif" font-size="13" font-weight="600">International Islamic University Chittagong ↗</text>
+    </g>
+
+    <!-- Navigation Header -->
+    <g id="Header Navigation" transform="translate(0, 44)">
+      <rect width="1440" height="92" fill="#F7F4ED"/>
+      <circle cx="106" cy="46" r="24" fill="#163D32"/>
+      <text x="95" y="52" fill="#F7F4ED" font-family="Georgia, serif" font-size="16" font-weight="700">EB</text>
+      <text x="144" y="42" fill="#102820" font-family="Georgia, serif" font-size="20" font-weight="700">Economics &amp; Banking Club</text>
+      <text x="144" y="60" fill="#5A6B63" font-family="Inter, sans-serif" font-size="10" font-weight="600" letter-spacing="1.4">INTERNATIONAL ISLAMIC UNIVERSITY CHITTAGONG</text>
+
+      <text x="640" y="52" fill="#163D32" font-family="Inter, sans-serif" font-size="15" font-weight="600">Home</text>
+      <text x="716" y="52" fill="#3B4E46" font-family="Inter, sans-serif" font-size="15">About us</text>
+      <text x="814" y="52" fill="#3B4E46" font-family="Inter, sans-serif" font-size="15">Activities</text>
+      <text x="912" y="52" fill="#3B4E46" font-family="Inter, sans-serif" font-size="15">Events</text>
+      <text x="994" y="52" fill="#3B4E46" font-family="Inter, sans-serif" font-size="15">Leadership &amp; Committees</text>
+
+      <rect x="1210" y="24" width="150" height="44" rx="22" fill="#163D32"/>
+      <text x="1238" y="51" fill="#F7F4ED" font-family="Inter, sans-serif" font-size="14" font-weight="600">Join the club →</text>
+      <line x1="80" y1="91" x2="1360" y2="91" stroke="#E2DACB"/>
+    </g>
+
+    <!-- Hero Section -->
+    <g id="Hero Section" transform="translate(80, 196)">
+      <rect x="0" y="0" width="220" height="34" rx="17" fill="#EFE8D8"/>
+      <circle cx="20" cy="17" r="4" fill="#C89D54"/>
+      <text x="34" y="22" fill="#6E521F" font-family="Inter, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5">LEARN. CONNECT. LEAD.</text>
+
+      <text x="0" y="104" fill="#102820" font-family="Georgia, serif" font-size="60" font-weight="700">Where curious minds</text>
+      <text x="0" y="172" fill="#102820" font-family="Georgia, serif" font-size="60" font-weight="700">meet <tspan fill="#163D32" font-style="italic">possibility.</tspan></text>
+
+      <text x="0" y="226" fill="#4A5D55" font-family="Inter, sans-serif" font-size="18">A home for the thinkers, changemakers, and future leaders of</text>
+      <text x="0" y="254" fill="#4A5D55" font-family="Inter, sans-serif" font-size="18">economics and banking at IIUC. Together, we learn beyond the</text>
+      <text x="0" y="282" fill="#4A5D55" font-family="Inter, sans-serif" font-size="18">classroom and grow beyond expectations.</text>
+
+      <g id="Hero CTA Buttons" transform="translate(0, 320)">
+        <rect width="220" height="54" rx="27" fill="#163D32"/>
+        <text x="32" y="33" fill="#F7F4ED" font-family="Inter, sans-serif" font-size="16" font-weight="600">Become a member →</text>
+
+        <rect x="238" y="0" width="230" height="54" rx="27" fill="#FFFFFF" stroke="#D5CBB8" stroke-width="1.5"/>
+        <text x="268" y="33" fill="#102820" font-family="Inter, sans-serif" font-size="16" font-weight="600">Explore our activities</text>
+      </g>
+
+      <!-- Hero Visual Frame -->
+      <g id="Hero Campus Card" transform="translate(680, 0)">
+        <rect width="600" height="460" rx="28" fill="#163D32"/>
+        <rect x="24" y="24" width="552" height="412" rx="20" fill="#1E4E40" stroke="#2D6A58"/>
+        <text x="60" y="360" fill="#C89D54" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">DEPARTMENT OF ECONOMICS &amp; BANKING · IIUC</text>
+        <text x="60" y="396" fill="#F7F4ED" font-family="Georgia, serif" font-size="30" font-weight="700">A place to belong. A space to become.</text>
+      </g>
+    </g>
+
+    <!-- Highlights Strip -->
+    <g id="Highlights Strip" transform="translate(80, 720)">
+      <rect width="1280" height="130" rx="22" fill="#163D32"/>
+      <text x="60" y="56" fill="#C89D54" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">SEMINARS &amp; WORKSHOPS</text>
+      <text x="60" y="90" fill="#F7F4ED" font-family="Georgia, serif" font-size="24" font-weight="700">Beyond the syllabus</text>
+
+      <text x="480" y="56" fill="#C89D54" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">CAREER &amp; RESEARCH</text>
+      <text x="480" y="90" fill="#F7F4ED" font-family="Georgia, serif" font-size="24" font-weight="700">Real-world readiness</text>
+
+      <text x="900" y="56" fill="#C89D54" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">STUDENT LEADERSHIP</text>
+      <text x="900" y="90" fill="#F7F4ED" font-family="Georgia, serif" font-size="24" font-weight="700">30-member executive team</text>
+    </g>
+
+    <!-- About Section -->
+    <g id="About Section" transform="translate(80, 930)">
+      <text x="0" y="20" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">ABOUT THE CLUB</text>
+      <text x="0" y="72" fill="#102820" font-family="Georgia, serif" font-size="44" font-weight="700">Built for thinkers, learners, and future leaders.</text>
+      <text x="0" y="118" fill="#4A5D55" font-family="Inter, sans-serif" font-size="18">The Economics &amp; Banking Club is a student-driven community within the Department of Economics &amp; Banking at IIUC.</text>
+
+      <g id="About Pillar 1" transform="translate(0, 160)">
+        <rect width="400" height="220" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="50" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">01 · PURPOSE</text>
+        <text x="32" y="92" fill="#102820" font-family="Georgia, serif" font-size="24" font-weight="700">Learn beyond textbooks</text>
+        <text x="32" y="132" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Bridge economic theory with banking practice,</text>
+        <text x="32" y="156" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">policy dialogue, and analytical thinking.</text>
+      </g>
+
+      <g id="About Pillar 2" transform="translate(440, 160)">
+        <rect width="400" height="220" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="50" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">02 · COMMUNITY</text>
+        <text x="32" y="92" fill="#102820" font-family="Georgia, serif" font-size="24" font-weight="700">Grow together across batches</text>
+        <text x="32" y="132" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Connect students, alumni, and faculty advisors</text>
+        <text x="32" y="156" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">in a supportive academic network.</text>
+      </g>
+
+      <g id="About Pillar 3" transform="translate(880, 160)">
+        <rect width="400" height="220" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="50" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">03 · LEADERSHIP</text>
+        <text x="32" y="92" fill="#102820" font-family="Georgia, serif" font-size="24" font-weight="700">Lead with confidence</text>
+        <text x="32" y="132" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Organize seminars, workshops, and campus</text>
+        <text x="32" y="156" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">initiatives that create lasting impact.</text>
+      </g>
+    </g>
+
+    <!-- Activities Section -->
+    <g id="Activities Section" transform="translate(80, 1410)">
+      <text x="0" y="20" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">WHAT WE DO</text>
+      <text x="0" y="72" fill="#102820" font-family="Georgia, serif" font-size="44" font-weight="700">Experiences designed to help you thrive.</text>
+
+      <g id="Activity Card 1" transform="translate(0, 120)">
+        <rect width="400" height="280" rx="22" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="48" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">LEARNING</text>
+        <text x="32" y="94" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">Ideas that go beyond the classroom.</text>
+        <text x="32" y="146" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Explore economic issues, financial markets, and</text>
+        <text x="32" y="170" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">banking through seminars and conversations.</text>
+        <text x="32" y="236" fill="#163D32" font-family="Inter, sans-serif" font-size="14" font-weight="600">Seminars &amp; discussions →</text>
+      </g>
+
+      <g id="Activity Card 2" transform="translate(440, 120)">
+        <rect width="400" height="280" rx="22" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="48" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">GROWTH</text>
+        <text x="32" y="94" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">Build skills. Find your direction.</text>
+        <text x="32" y="146" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Connect theory with practice through workshops,</text>
+        <text x="32" y="170" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">case studies, and career-focused learning.</text>
+        <text x="32" y="236" fill="#163D32" font-family="Inter, sans-serif" font-size="14" font-weight="600">Workshops &amp; career development →</text>
+      </g>
+
+      <g id="Activity Card 3" transform="translate(880, 120)">
+        <rect width="400" height="280" rx="22" fill="#FFFFFF" stroke="#E2DACB"/>
+        <text x="32" y="48" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700">COMMUNITY</text>
+        <text x="32" y="94" fill="#102820" font-family="Georgia, serif" font-size="26" font-weight="700">Better together, by design.</text>
+        <text x="32" y="146" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">Meet like-minded students, exchange perspectives,</text>
+        <text x="32" y="170" fill="#4A5D55" font-family="Inter, sans-serif" font-size="15">and create meaningful campus experiences.</text>
+        <text x="32" y="236" fill="#163D32" font-family="Inter, sans-serif" font-size="14" font-weight="600">Networking &amp; club life →</text>
+      </g>
+    </g>
+
+    <!-- Executive Committee Section -->
+    <g id="Executive Committee Section" transform="translate(80, 1910)">
+      <text x="0" y="20" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">LEADERSHIP &amp; COMMITTEES</text>
+      <text x="0" y="72" fill="#102820" font-family="Georgia, serif" font-size="44" font-weight="700">Executive Committee</text>
+
+      <g id="Exec Card 01 - President" transform="translate(0, 110)">
+        <rect width="300" height="360" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <rect x="16" y="16" width="268" height="200" rx="14" fill="#163D32"/>
+        <text x="32" y="50" fill="#C89D54" font-family="monospace" font-size="14">01</text>
+        <text x="24" y="254" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">PRESIDENT</text>
+        <text x="24" y="286" fill="#102820" font-family="Georgia, serif" font-size="22" font-weight="700">Name to be announced</text>
+        <text x="24" y="318" fill="#4A5D55" font-family="Inter, sans-serif" font-size="13">Guiding the club vision and community.</text>
+      </g>
+
+      <g id="Exec Card 02 - Vice President" transform="translate(326, 110)">
+        <rect width="300" height="360" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <rect x="16" y="16" width="268" height="200" rx="14" fill="#163D32"/>
+        <text x="32" y="50" fill="#C89D54" font-family="monospace" font-size="14">02</text>
+        <text x="24" y="254" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">VICE PRESIDENT</text>
+        <text x="24" y="286" fill="#102820" font-family="Georgia, serif" font-size="22" font-weight="700">Name to be announced</text>
+        <text x="24" y="318" fill="#4A5D55" font-family="Inter, sans-serif" font-size="13">Supporting the team and shared ideas.</text>
+      </g>
+
+      <g id="Exec Card 03 - General Secretary" transform="translate(652, 110)">
+        <rect width="300" height="360" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <rect x="16" y="16" width="268" height="200" rx="14" fill="#163D32"/>
+        <text x="32" y="50" fill="#C89D54" font-family="monospace" font-size="14">03</text>
+        <text x="24" y="254" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">GENERAL SECRETARY</text>
+        <text x="24" y="286" fill="#102820" font-family="Georgia, serif" font-size="22" font-weight="700">Name to be announced</text>
+        <text x="24" y="318" fill="#4A5D55" font-family="Inter, sans-serif" font-size="13">Keeping activities and plans connected.</text>
+      </g>
+
+      <g id="Exec Card 04 - Treasurer" transform="translate(978, 110)">
+        <rect width="300" height="360" rx="20" fill="#FFFFFF" stroke="#E2DACB"/>
+        <rect x="16" y="16" width="268" height="200" rx="14" fill="#163D32"/>
+        <text x="32" y="50" fill="#C89D54" font-family="monospace" font-size="14">04</text>
+        <text x="24" y="254" fill="#8A6A2F" font-family="Inter, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">TREASURER</text>
+        <text x="24" y="286" fill="#102820" font-family="Georgia, serif" font-size="22" font-weight="700">Name to be announced</text>
+        <text x="24" y="318" fill="#4A5D55" font-family="Inter, sans-serif" font-size="13">Supporting responsible planning.</text>
+      </g>
+    </g>
+
+    <!-- Events & CTA Banner -->
+    <g id="Events and CTA Section" transform="translate(80, 2480)">
+      <rect width="1280" height="320" rx="28" fill="#163D32"/>
+      <text x="64" y="76" fill="#C89D54" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">YOUR PLACE IS HERE</text>
+      <text x="64" y="136" fill="#F7F4ED" font-family="Georgia, serif" font-size="44" font-weight="700">Ready to be part of the story?</text>
+      <text x="64" y="182" fill="#C7D7D1" font-family="Inter, sans-serif" font-size="18">Join fellow students of Economics &amp; Banking at IIUC and help shape what comes next.</text>
+      <rect x="64" y="218" width="230" height="54" rx="27" fill="#F7F4ED"/>
+      <text x="98" y="251" fill="#102820" font-family="Inter, sans-serif" font-size="16" font-weight="600">Become a member →</text>
+    </g>
+
+    <!-- Footer -->
+    <g id="Footer Section" transform="translate(0, 2900)">
+      <rect width="1440" height="500" rx="24" fill="#0D261F"/>
+      <text x="80" y="90" fill="#F7F4ED" font-family="Georgia, serif" font-size="30" font-weight="700">Economics &amp; Banking Club, IIUC</text>
+      <text x="80" y="130" fill="#9EB5AD" font-family="Inter, sans-serif" font-size="16">Department of Economics &amp; Banking · International Islamic University Chittagong</text>
+      <line x1="80" y1="340" x2="1360" y2="340" stroke="#1E4439"/>
+      <text x="80" y="390" fill="#9EB5AD" font-family="Inter, sans-serif" font-size="14">© 2026 Economics &amp; Banking Club, IIUC · Built on knowledge. United by community.</text>
+      <text x="80" y="435" fill="#C89D54" font-family="Inter, sans-serif" font-size="16" font-weight="700">Owner &amp; Developed by Tasranur Rahaman · Batch 26th · EB253022</text>
+    </g>
+  </g>
+</svg>

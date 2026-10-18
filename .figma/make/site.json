@@ -1,11 +1,18 @@
 {
-  "title": "EB-CLUB",
-  "description": "Connects students and enthusiasts of economics and banking at IIUC, providing resources, event updates, and a platform for collaboration and learning.",
+  "title": "IIUC Economics & Banking Club | Learning, Leadership & Community",
+  "description": "Explore the Economics & Banking Club at International Islamic University Chittagong (IIUC): student activities, events, executive committee and membership.",
   "robots": {
     "index": true
+  },
+  "icons": {
+    "icon": "/images/club-logo.png"
+  },
+  "openGraph": {
+    "image": "https://ebclubiiuc.netlify.app/images/club-banner.png"
   },
   "accessibility": {
     "addBypassLinks": false,
     "ignoreReducedMotion": false
-  }
+  },
+  "language": "en"
 }

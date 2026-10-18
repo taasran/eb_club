@@ -5,9 +5,8 @@ import EconomicsLoader from "../EconomicsLoader"
 import useSiteContent from "../useSiteContent"
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
-import ExecutiveCard, {
-  type ManagedExecutive,
-} from "../components/ExecutiveCard"
+import type { ManagedExecutive } from "../components/ExecutiveCard"
+import ExecutiveShowcase from "../components/ExecutiveShowcase"
 import {
   committee,
   aboutTopics,
@@ -34,68 +33,6 @@ export default function HomePage() {
     { title: "Economics in a changing world", type: "Proposed seminar" },
     { title: "Your first step into banking", type: "Proposed workshop" },
   ]
-  const renderExecutive = (person: ManagedExecutive, index: number) => (
-    <ExecutiveCard
-      key={index}
-      role={person.designation ?? "Executive Member"}
-      description={
-        committee.find(([role]) => role === person.designation)?.[1] ??
-        "Economics & Banking Club executive team."
-      }
-      index={index}
-      person={person}
-      total={displayedExecutives.length}
-    />
-  )
-  const committeeRef = useRef<HTMLDivElement>(null)
-  const [autoSlide, setAutoSlide] = useState(true)
-  const [sliderHovered, setSliderHovered] = useState(false)
-  const [sliderFocused, setSliderFocused] = useState(false)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [committeePosition, setCommitteePosition] = useState({
-    first: 0,
-    atEnd: false,
-  })
-  const sliderRunning =
-    autoSlide && !sliderHovered && !sliderFocused && !reducedMotion
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const update = () => setReducedMotion(preference.matches)
-    update()
-    preference.addEventListener("change", update)
-    return () => preference.removeEventListener("change", update)
-  }, [])
-  useEffect(() => {
-    if (!sliderRunning) return
-    const timer = window.setInterval(() => {
-      const track = committeeRef.current
-      if (!track || document.hidden) return
-      const bounds = track.getBoundingClientRect()
-      if (bounds.bottom < 0 || bounds.top > window.innerHeight) return
-      const card = track.firstElementChild as HTMLElement | null
-      if (!card) return
-      const step =
-        card.offsetWidth + (parseFloat(getComputedStyle(track).columnGap) || 0)
-      const atEnd =
-        track.scrollLeft + track.clientWidth >= track.scrollWidth - 3
-      track.scrollTo({
-        left: atEnd ? 0 : track.scrollLeft + step,
-        behavior: "smooth",
-      })
-    }, 4000)
-    return () => window.clearInterval(timer)
-  }, [sliderRunning])
-  const moveCommittee = (direction: number) => {
-    setAutoSlide(false)
-    const track = committeeRef.current
-    if (!track) return
-    track.scrollBy({
-      left: direction * track.clientWidth,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    })
-  }
   const mainRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -208,13 +145,6 @@ export default function HomePage() {
               download="iiuc-eb-club-design-package.zip"
             >
               Download Design Package (.zip)
-            </a>
-            <a
-              className="button primary small"
-              href="/downloads/eb-club-source.zip"
-              download="iiuc-eb-club-full-website.zip"
-            >
-              Download Full Website (.zip)
             </a>
             <a className="button secondary small" href="/admin">
               Owner Admin Panel
@@ -610,102 +540,7 @@ export default function HomePage() {
               Meet the leadership of our club.
             </p>
           </div>
-          <div className="eyebrow leadership-heading">CLUB LEADERSHIP</div>
-          <div className="compact-leadership">
-            {displayedExecutives.slice(0, 4).map(renderExecutive)}
-          </div>
-          {displayedExecutives.length > 4 && (
-            <Div
-              className={
-                sliderRunning
-                  ? "committee-carousel is-running"
-                  : "committee-carousel"
-              }
-              onMouseEnter={() => setSliderHovered(true)}
-              onMouseLeave={() => setSliderHovered(false)}
-              onFocusCapture={() => setSliderFocused(true)}
-              onBlurCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget))
-                  setSliderFocused(false)
-              }}
-            >
-              <div className="committee-toolbar">
-                <Div>
-                  <Div className="eyebrow">
-                    EXECUTIVE TEAM{" "}
-                    <Span className="slider-status-dot" aria-hidden="true" />
-                  </Div>
-                  <P>
-                    {displayedExecutives.length - 4} profiles · Automatic
-                    showcase · Swipe to explore
-                  </P>
-                </Div>
-                <div className="committee-controls">
-                  <Span aria-live={sliderRunning ? "off" : "polite"}>
-                    Profile{" "}
-                    {Math.min(
-                      committeePosition.first + 5,
-                      displayedExecutives.length,
-                    )}{" "}
-                    / {displayedExecutives.length}
-                  </Span>
-                  <button
-                    className="round-button previous-slide"
-                    aria-label="Previous executive profiles"
-                    aria-controls="committee-slider"
-                    disabled={committeePosition.first === 0}
-                    onClick={() => moveCommittee(-1)}
-                  >
-                    <Icon name="arrow" />
-                  </button>
-                  <button
-                    className="round-button"
-                    aria-label="Next executive profiles"
-                    aria-controls="committee-slider"
-                    disabled={committeePosition.atEnd}
-                    onClick={() => moveCommittee(1)}
-                  >
-                    <Icon name="arrow" />
-                  </button>
-                </div>
-              </div>
-              <div
-                className="committee-slider"
-                id="committee-slider"
-                ref={committeeRef}
-                role="region"
-                aria-label="Executive team profiles"
-                aria-roledescription="carousel"
-                tabIndex={0}
-                onTouchStart={() => setAutoSlide(false)}
-                onKeyDown={(event) => {
-                  if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-                    event.preventDefault()
-                    moveCommittee(event.key === "ArrowRight" ? 1 : -1)
-                  }
-                }}
-                onScroll={(event) => {
-                  const track = event.currentTarget
-                  const card = track.firstElementChild as HTMLElement | null
-                  if (!card) return
-                  const gap = parseFloat(getComputedStyle(track).columnGap) || 0
-                  setCommitteePosition({
-                    first: Math.min(
-                      displayedExecutives.length - 5,
-                      Math.round(track.scrollLeft / (card.offsetWidth + gap)),
-                    ),
-                    atEnd:
-                      track.scrollLeft + track.clientWidth >=
-                      track.scrollWidth - 3,
-                  })
-                }}
-              >
-                {displayedExecutives
-                  .slice(4)
-                  .map((person, index) => renderExecutive(person, index + 4))}
-              </div>
-            </Div>
-          )}
+          <ExecutiveShowcase profiles={displayedExecutives} />
         </section>
 
         <section

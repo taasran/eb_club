@@ -3,6 +3,7 @@ import EconomicsLoader from "./EconomicsLoader"
 import { supabase, serverUrl, publicAnonKey } from "./supabase"
 import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
+import ProjectDownload from "./admin/ProjectDownload"
 import AdminControls from "./AdminControls"
 import { readContent, publishContent, type SiteContent } from "./contentClient"
 import { announceContentUpdate } from "./useSiteContent"
@@ -665,19 +666,7 @@ export default function AdminPage() {
   if (checking)
     return (
       <Main className="admin-shell admin-center">
-        <Div className="flex flex-col items-center gap-4">
-          <EconomicsLoader label="Opening content studio" />
-          <Link
-            className="admin-btn ghost"
-            href="/downloads/eb-club-source.zip"
-            download="eb-club-latest-source.zip"
-          >
-            <AdminIcon name="download" /> Download latest project code (.zip)
-          </Link>
-          <P className="admin-muted">
-            No sign-in needed for the source download.
-          </P>
-        </Div>
+        <EconomicsLoader label="Opening content studio" />
       </Main>
     )
 
@@ -745,13 +734,9 @@ export default function AdminPage() {
           <a className="admin-link" href="/" target="_blank" rel="noreferrer">
             <AdminIcon name="external" /> View website
           </a>
-          <a
-            className="admin-link"
-            href="/downloads/eb-club-source.zip"
-            download="iiuc-eb-club-source.zip"
-          >
-            <AdminIcon name="download" /> Download source ZIP
-          </a>
+          <Link className="admin-link" href="#project-source">
+            <AdminIcon name="download" /> Latest project code (.zip)
+          </Link>
           <button type="button" className="admin-link" onClick={signOut}>
             <AdminIcon name="logout" /> Sign out
           </button>
@@ -764,6 +749,8 @@ export default function AdminPage() {
           <span>/</span>
           <strong>{activeTab.label}</strong>
         </div>
+
+        <ProjectDownload />
 
         {tab === "team" && adminRole === "owner" && (
           <AdminAccess request={request} ownerEmail={adminEmail} />
@@ -1215,7 +1202,7 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="EXECUTIVE COMMITTEE"
               title="Current team"
-              description="Shown in order on the home page slider."
+              description="The first four appear in Club Leadership. The full committee, including those leaders, appears with details in the Club Executives slider."
               action={
                 <button
                   type="button"

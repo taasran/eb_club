@@ -4,7 +4,8 @@
 
 `.github/workflows/deploy.yml` checks pull requests. A push to the GitHub
 repository's `main` branch runs the same checks, builds the frontend, deploys the
-Supabase function and finally publishes `dist/` to the existing Netlify site.
+Supabase function and finally publishes `dist/` and the protected source-download
+Netlify function to the existing Netlify site.
 Failed checks stop deployment. Production deploys are serialized.
 
 This workflow cannot see uncommitted Figma Make edits. This workspace's current
@@ -56,6 +57,13 @@ commit may deploy twice and consume extra credits.
 `netlify.toml` also defines the correct build command and output directory for a
 developer who deliberately chooses native Netlify Git builds instead. Native
 Netlify builds alone do not deploy the Supabase backend.
+
+The build creates `private-downloads/` outside `dist/`. Do not copy this directory
+into the public site or replace the download function with a static ZIP link.
+The build creates a private `source-snapshot.mjs` dependency; the workflow's
+`--functions=netlify/functions` bundles it inside the protected endpoint.
+Old public download aliases are forced through that endpoint
+by `public/_redirects`; preserve these rules above the SPA fallback.
 
 ## Normal changes after setup
 

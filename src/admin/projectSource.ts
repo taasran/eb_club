@@ -1,9 +1,10 @@
+
 import { supabase } from "../supabase"
 import { adminSignInUrl } from "./onboarding"
 
 // The Make dev server serves the same protected endpoint (see vite.config.ts),
 // so the preview downloads current code; production uses the Netlify function.
-const endpoint = import.meta.env.DEV
+// const endpoint = import.meta.env?.DEV
   ? "/.netlify/functions/project-source"
   : new URL("/.netlify/functions/project-source", adminSignInUrl).toString()
 

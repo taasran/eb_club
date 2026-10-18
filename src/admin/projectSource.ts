@@ -1,14 +1,13 @@
-
 import { supabase } from "../supabase"
 import { adminSignInUrl } from "./onboarding"
 
 // The Make dev server serves the same protected endpoint (see vite.config.ts),
 // so the preview downloads current code; production uses the Netlify function.
-// const endpoint = import.meta.env?.DEV
+// `env` is absent when Node tests import this module outside Vite.
+const endpoint = import.meta.env?.DEV
   ? "/.netlify/functions/project-source"
   : new URL("/.netlify/functions/project-source", adminSignInUrl).toString()
-
-export async function requestProjectSource(
+  export async function requestProjectSource(
   metadata = false,
 ): Promise<Response> {
   const { data, error } = await supabase.auth.getSession()

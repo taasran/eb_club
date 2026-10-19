@@ -1,4 +1,3 @@
-import Icon from "./Icon"
 import AdminControls from "../AdminControls"
 
 const { Article } = AdminControls
@@ -9,6 +8,35 @@ export type ManagedExecutive = {
   studentId?: string
   batch?: string
   image?: string
+  quote?: string
+  imageZoom?: number
+  imageX?: number
+  imageY?: number
+}
+
+// One illustrated avatar for every profile without a photo keeps the roster consistent.
+function IllustratedAvatar() {
+  return (
+    <svg
+      className="executive-avatar"
+      viewBox="0 0 120 120"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="60" cy="60" r="58" className="avatar-ring" />
+      <circle cx="60" cy="60" r="52" className="avatar-bg" />
+      <path
+        className="avatar-body"
+        d="M22 104c4-20 20-31 38-31s34 11 38 31a52 52 0 0 1-76 0Z"
+      />
+      <path className="avatar-collar" d="M50 74l10 13 10-13" />
+      <circle cx="60" cy="47" r="17" className="avatar-head" />
+      <path
+        className="avatar-hair"
+        d="M43 45c0-11 8-18 17-18s17 7 17 18c-5-6-11-8-17-8s-12 2-17 8Z"
+      />
+    </svg>
+  )
 }
 
 export default function ExecutiveCard({
@@ -17,7 +45,7 @@ export default function ExecutiveCard({
   index,
   person,
   total,
-  leadership = index < 4,
+  leadership = index < 3,
 }: {
   role: string
   description: string
@@ -36,35 +64,36 @@ export default function ExecutiveCard({
   ]
     .filter(Boolean)
     .join(" · ")
+  const quote = person?.quote?.trim()
   return (
     <Article
       className={
         leadership ? "executive-card leadership-card" : "executive-card"
       }
       aria-label={`${role}, profile ${index + 1} of ${total}`}
+      tabIndex={leadership ? 0 : undefined}
     >
-      <div className="executive-portrait" aria-hidden="true">
+      <div className="executive-portrait">
         {person?.image ? (
           <img
+            className="executive-photo"
             src={person.image}
             alt=""
             style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center 20%",
+              objectPosition: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
+              transformOrigin: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
+              transform: person.imageZoom && person.imageZoom > 1 ? `scale(${person.imageZoom})` : undefined,
             }}
           />
         ) : (
-          <span className="executive-profile">
-            <Icon name="people" />
+          <IllustratedAvatar />
+        )}
+        <div className="executive-reveal">
+          <span className="executive-reveal-label">
+            {quote ? "In their words" : "Responsibility"}
           </span>
-        )}
-        {!person?.image && (
-          <span className="executive-portrait-label">PORTRAIT TO COME</span>
-        )}
+          <p>{quote ? `“${quote}”` : description}</p>
+        </div>
       </div>
       <div className="executive-info">
         <div className="eyebrow">{role}</div>

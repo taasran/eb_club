@@ -7,11 +7,16 @@ import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
 import type { ManagedExecutive } from "../components/ExecutiveCard"
 import ExecutiveShowcase from "../components/ExecutiveShowcase"
+import type { ClubEvent } from "../contentClient"
 import {
   committee,
   aboutTopics,
   activities,
+  activityCategories,
+  clubFacts,
+  heroAchievements,
   leadershipTopics,
+  legacyMilestones,
 } from "../data/club"
 
 const { Div, P, Span, Small, H3, Button } = AdminControls
@@ -25,14 +30,25 @@ export default function HomePage() {
   const [email, setEmail] = useState("")
   const [subscribed, setSubscribed] = useState(false)
   const [ambientPaused, setAmbientPaused] = useState(false)
+  const [welcomeExpanded, setWelcomeExpanded] = useState(false)
+  const [openMilestone, setOpenMilestone] = useState<number | null>(0)
   const managedContent = useSiteContent()
   const displayedExecutives: ManagedExecutive[] =
     managedContent.executives ??
     committee.map(([designation]) => ({ designation }))
-  const displayedEvents = managedContent.events ?? [
-    { title: "Economics in a changing world", type: "Proposed seminar" },
-    { title: "Your first step into banking", type: "Proposed workshop" },
+  const displayedEvents: ClubEvent[] = managedContent.events ?? [
+    {
+      title: "Economics in a changing world",
+      type: "Proposed seminar",
+      status: "Coming Soon",
+    },
+    {
+      title: "Your first step into banking",
+      type: "Proposed workshop",
+      status: "Coming Soon",
+    },
   ]
+  const displayedLegacy = managedContent.legacy ?? legacyMilestones
   const mainRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -59,7 +75,7 @@ export default function HomePage() {
     )
     mainRef.current
       ?.querySelectorAll(
-        ".welcome-message, .about, .about-resources, .section-heading, .activity-card, .executive-card, .event-row, .join-banner",
+        ".achievement-strip, .welcome-message, .about, .about-resources, .section-heading, .activity-card, .legacy-item, .executive-card, .event-row, .join-banner, .footer-columns",
       )
       .forEach((element) => observer.observe(element))
     const stopMotion = () => {
@@ -119,11 +135,7 @@ export default function HomePage() {
 
   return (
     <div
-      className={
-        ambientPaused
-          ? "site-shell motion-paused [zoom:1.06]"
-          : "site-shell [zoom:1.06]"
-      }
+      className={ambientPaused ? "site-shell motion-paused" : "site-shell"}
     >
       <EconomicsBackdrop />
       {isPreviewHost && (
@@ -282,7 +294,7 @@ export default function HomePage() {
         >
           <div className="hero-copy">
             <div className="eyebrow">
-              <span className="dot" /> WELCOME TO IIUC EBC
+              <span className="dot" /> WELCOME TO IIUC EB CLUB
             </div>
             <h1>
               {managedContent.heroTitle ?? (
@@ -293,6 +305,14 @@ export default function HomePage() {
                 </>
               )}
             </h1>
+            <div className="hero-est">
+              <span className="hero-est-line" aria-hidden="true" />
+              EST. IIUC
+              <span className="hero-est-divider" aria-hidden="true">
+                ·
+              </span>
+              DEPARTMENT OF ECONOMICS &amp; BANKING
+            </div>
             <p className="hero-description">
               {managedContent.heroDescription ??
                 "Welcome to IIUC Economics & Banking Club—a vibrant student community where learning, connection, and leadership help every member move forward."}
@@ -301,10 +321,18 @@ export default function HomePage() {
               <button className="button primary" onClick={openJoin}>
                 Become a member <Icon name="arrow" />
               </button>
-              <a className="button secondary" href="#activities">
+              <a className="button outline" href="#activities">
                 Explore our activities <Icon name="arrow" />
               </a>
             </div>
+            <ul className="hero-chips" aria-label="Club highlights">
+              {heroAchievements.map((item) => (
+                <li key={item}>
+                  <span className="hero-chip-dot" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
             <div className="hero-affiliation">
               <img src="/images/iiuc-logo.png" alt="IIUC university crest" />
               <div>
@@ -352,20 +380,44 @@ export default function HomePage() {
         </section>
 
         <section
+          className="principles achievement-strip wrap"
+          aria-label="The club at a glance"
+        >
+          <div className="principle-intro">
+            Big ideas.
+            <br />
+            <em>Shared ambitions.</em>
+          </div>
+          {clubFacts.map((fact) => (
+            <div key={fact.label}>
+              <span className="strip-value">{fact.value}</span>
+              <span>
+                <strong>{fact.label}</strong>
+                <small>{fact.text}</small>
+              </span>
+            </div>
+          ))}
+        </section>
+
+        <section
           id="welcome"
           className="welcome-message wrap section"
           aria-labelledby="welcome-title"
         >
           <div className="welcome-message-heading">
             <div className="eyebrow">A MESSAGE FROM EB CLUB</div>
-            <p className="welcome-invocation">Bismillahir Rahmanir Rahim</p>
+            <p className="welcome-invocation">
+              <span className="welcome-ornament" aria-hidden="true" />
+              Bismillahir Rahmanir Rahim
+              <span className="welcome-ornament" aria-hidden="true" />
+            </p>
             <p className="welcome-greeting">Assalamu Alaikum</p>
             <h2 id="welcome-title">
               Welcome to Economics &amp; Banking Club, <em>IIUC.</em>
             </h2>
           </div>
           <div className="welcome-message-copy">
-            <p>
+            <p className="welcome-lead">
               The Economics &amp; Banking Club (EB Club) is the departmental
               club of the Department of Economics and Banking at the
               International Islamic University Chittagong (IIUC). The club
@@ -379,91 +431,94 @@ export default function HomePage() {
               opportunities to enhance their academic knowledge, practical
               skills, leadership abilities, and professional experience.
             </p>
-            <p>
-              A new executive committee is generally formed at the beginning of
-              each year, with each committee serving a one-year term.
-              Throughout the year, EB Club organizes departmental tours,
-              cricket and football tournaments, research and debate workshops,
-              industrial visits, health camps, leadership development
-              programmes, and other academic, cultural, and extracurricular
-              events.
-            </p>
-            <p>
-              Among the most remarkable initiatives of EB Club are EB Day 2020
-              and EB Winter Fest 2025. Both programmes received significant
-              attention across IIUC and remain memorable milestones in the
-              club&apos;s journey.
-            </p>
-            <p>
-              Beyond organizing events, EB Club actively supports departmental
-              activities and works closely with students, faculty members, and
-              the department to create a more engaging, supportive, and
-              opportunity-driven academic environment.
-            </p>
-            <p>
-              As we move forward, our commitment remains the same: to serve our
-              department, empower our students, and build a stronger future for
-              the Economics and Banking community at IIUC.
-            </p>
+            <div
+              id="welcome-more"
+              className={
+                welcomeExpanded ? "welcome-more is-open" : "welcome-more"
+              }
+              inert={!welcomeExpanded}
+            >
+              <div>
+                <p>
+                  A new executive committee is generally formed at the
+                  beginning of each year, with each committee serving a
+                  one-year term. Throughout the year, EB Club organizes
+                  departmental tours, cricket and football tournaments,
+                  research and debate workshops, industrial visits, health
+                  camps, leadership development programmes, and other
+                  academic, cultural, and extracurricular events.
+                </p>
+                <p>
+                  Among the most remarkable initiatives of EB Club are EB Day
+                  2020 and EB Winter Fest 2025. Both programmes received
+                  significant attention across IIUC and remain memorable
+                  milestones in the club&apos;s journey.
+                </p>
+                <p>
+                  Beyond organizing events, EB Club actively supports
+                  departmental activities and works closely with students,
+                  faculty members, and the department to create a more
+                  engaging, supportive, and opportunity-driven academic
+                  environment.
+                </p>
+                <p>
+                  As we move forward, our commitment remains the same: to
+                  serve our department, empower our students, and build a
+                  stronger future for the Economics and Banking community at
+                  IIUC.
+                </p>
+                <p className="welcome-signoff">
+                  — Executive Committee, EB Club IIUC
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="text-link welcome-toggle"
+              aria-expanded={welcomeExpanded}
+              aria-controls="welcome-more"
+              onClick={() => setWelcomeExpanded((current) => !current)}
+            >
+              {welcomeExpanded ? "Show less" : "Read full message"}
+              <Icon name="chevron" className="welcome-toggle-icon" />
+            </button>
           </div>
           <div className="welcome-message-pillars">
             <article>
+              <span className="pillar-icon">
+                <Icon name="target" />
+              </span>
               <div className="eyebrow">OUR MISSION</div>
               <p>
                 To empower the students of the Department of Economics and
-                Banking at IIUC through academic growth, professional skill
-                development, leadership, research, teamwork, and personal
-                development. We foster an inclusive environment where students
-                can explore their potential, build practical knowledge, and
-                prepare for future challenges.
+                Banking at IIUC through academic excellence, professional skill
+                development, leadership, research, and collaboration, while
+                fostering an inclusive environment in which every member can
+                realise their potential and prepare for future challenges.
               </p>
             </article>
             <article>
+              <span className="pillar-icon">
+                <Icon name="eye" />
+              </span>
               <div className="eyebrow">OUR VISION</div>
               <p>
-                To establish EB Club as a leading departmental student
-                organization at IIUC, recognized for its commitment to student
-                development, innovation, leadership, and meaningful
-                initiatives—building confident, skilled, responsible, and
-                future-ready graduates.
+                To establish the EB Club as a leading departmental student
+                organization at IIUC, recognized for its dedication to student
+                development, innovation, and leadership, and for nurturing
+                confident, skilled, responsible, and future-ready graduates.
               </p>
             </article>
             <article className="welcome-commitment">
+              <span className="pillar-icon">
+                <Icon name="handshake" />
+              </span>
               <div className="eyebrow">OUR COMMITMENT</div>
               <p>
-                Together, we learn. Together, we grow. Together, we build the
+                Together, we commit to learning, growing, and building the
                 future of Economics and Banking.
               </p>
             </article>
-          </div>
-        </section>
-
-        <section className="principles wrap" aria-label="Our values">
-          <div className="principle-intro">
-            Big ideas.
-            <br />
-            <em>Shared ambitions.</em>
-          </div>
-          <div>
-            <span className="number">01</span>
-            <span>
-              <strong>Learn with purpose</strong>
-              <small>Turn curiosity into understanding.</small>
-            </span>
-          </div>
-          <div>
-            <span className="number">02</span>
-            <span>
-              <strong>Connect with people</strong>
-              <small>Find your circle. Broaden your world.</small>
-            </span>
-          </div>
-          <div>
-            <span className="number">03</span>
-            <span>
-              <strong>Lead with impact</strong>
-              <small>Make a difference that matters.</small>
-            </span>
           </div>
         </section>
 
@@ -505,6 +560,11 @@ export default function HomePage() {
                     <span aria-hidden="true">+</span>
                   </summary>
                   <p>{topic.text}</p>
+                  {topic.id === "our-legacy" && displayedLegacy.length > 0 && (
+                    <a className="text-link about-panel-link" href="#legacy">
+                      Explore the legacy timeline <Icon name="arrow" />
+                    </a>
+                  )}
                 </details>
               ))}
           </div>
@@ -532,18 +592,16 @@ export default function HomePage() {
               </p>
             </div>
             <div className="filters" aria-label="Filter activities">
-              {["All activities", "Learning", "Growth", "Community"].map(
-                (item) => (
-                  <button
-                    key={item}
-                    className={filter === item ? "filter selected" : "filter"}
-                    aria-pressed={filter === item}
-                    onClick={() => setFilter(item)}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
+              {["All activities", ...activityCategories].map((item) => (
+                <button
+                  key={item}
+                  className={filter === item ? "filter selected" : "filter"}
+                  aria-pressed={filter === item}
+                  onClick={() => setFilter(item)}
+                >
+                  {item}
+                </button>
+              ))}
             </div>
             <div className="activity-grid">
               {activities
@@ -551,14 +609,19 @@ export default function HomePage() {
                   (item) =>
                     filter === "All activities" || item.category === filter,
                 )
-                .map((item, i) => (
-                  <article className="activity-card" key={item.category}>
-                    <div className="card-top">
-                      <span className="activity-icon">
+                .map((item) => (
+                  <article className="activity-card" key={item.id}>
+                    <div className="activity-photo">
+                      <img
+                        src={
+                          managedContent.activityImages?.[item.id] || item.image
+                        }
+                        alt={item.alt}
+                        loading="lazy"
+                      />
+                      <span className="activity-photo-label">
                         <Icon name={item.icon} />
-                      </span>
-                      <span className="card-number">
-                        0{activities.indexOf(item) + 1}
+                        {item.category}
                       </span>
                     </div>
                     <div className="card-category">{item.label}</div>
@@ -568,14 +631,122 @@ export default function HomePage() {
                       className="text-link"
                       onClick={() => setSelectedEvent(item.label)}
                     >
-                      Explore {item.category.toLowerCase()}{" "}
-                      <Icon name="arrow" />
+                      Explore {item.label.toLowerCase()} <Icon name="arrow" />
                     </button>
                   </article>
                 ))}
             </div>
           </div>
         </section>
+
+        {displayedLegacy.length > 0 && (
+          <section
+            className="wrap section legacy-section"
+            id="legacy"
+            aria-labelledby="legacy-title"
+          >
+            <div className="section-heading">
+              <div>
+                <div className="eyebrow">OUR LEGACY</div>
+                <h2 id="legacy-title">
+                  Milestones that <em>shaped us.</em>
+                </h2>
+              </div>
+              <p>
+                Moments that brought our department together
+                <br />
+                and inspire every new chapter.
+              </p>
+            </div>
+            <ol className="legacy-timeline">
+              {displayedLegacy.map((milestone, index) => {
+                const open = openMilestone === index
+                const highlights = (milestone.highlights ?? []).filter(
+                  (item) => item.trim(),
+                )
+                return (
+                  <li
+                    className={open ? "legacy-item is-open" : "legacy-item"}
+                    key={index}
+                  >
+                    <span className="legacy-year">{milestone.year}</span>
+                    <span className="legacy-marker" aria-hidden="true" />
+                    <article className="legacy-card">
+                      <h3>
+                        <button
+                          type="button"
+                          className="legacy-toggle"
+                          aria-expanded={open}
+                          aria-controls={`legacy-panel-${index}`}
+                          onClick={() =>
+                            setOpenMilestone(open ? null : index)
+                          }
+                        >
+                          <span>{milestone.title}</span>
+                          <span className="legacy-toggle-hint">
+                            {open ? "Hide details" : "View highlights"}
+                            <Icon name="chevron" />
+                          </span>
+                        </button>
+                      </h3>
+                      <div
+                        className="legacy-panel"
+                        id={`legacy-panel-${index}`}
+                        inert={!open}
+                      >
+                        <div className="legacy-panel-inner">
+                          <div className="legacy-media">
+                            {milestone.image ? (
+                              <img
+                                src={milestone.image}
+                                alt={`${milestone.title}`}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="legacy-media-placeholder">
+                                <img src="/images/club-logo.png" alt="" />
+                                <span>Photos coming soon</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="legacy-details">
+                            {milestone.text && <p>{milestone.text}</p>}
+                            {highlights.length > 0 && (
+                              <>
+                                <div className="eyebrow">EVENT HIGHLIGHTS</div>
+                                <ul>
+                                  {highlights.map((item) => (
+                                    <li key={item}>{item}</li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </li>
+                )
+              })}
+              <li className="legacy-item legacy-next">
+                <span className="legacy-year">Next</span>
+                <span className="legacy-marker" aria-hidden="true" />
+                <article className="legacy-card">
+                  <div>
+                    <h3>The next chapter is yours to write.</h3>
+                    <p>
+                      Join the club and help create the moments the next batch
+                      will remember.
+                    </p>
+                    <button className="text-link" onClick={openJoin}>
+                      Become part of the story <Icon name="arrow" />
+                    </button>
+                  </div>
+                </article>
+              </li>
+            </ol>
+          </section>
+        )}
 
         <section className="wrap section" id="events">
           <div className="section-heading">
@@ -585,25 +756,49 @@ export default function HomePage() {
             </div>
             <span className="pill">On the horizon</span>
           </div>
-          {displayedEvents.map((event, index) => (
-            <Div className="event-row" key={index}>
-              <Span className="event-icon">
-                <Icon name={index % 2 === 0 ? "calendar" : "briefcase"} />
-              </Span>
-              <Div className="event-title">
-                <Small>{event.type.toUpperCase()} · DATE TO BE ANNOUNCED</Small>
-                <H3>{event.title}</H3>
+          {displayedEvents.map((event, index) => {
+            const status = event.status ?? "Coming Soon"
+            return (
+              <Div className="event-row" key={index}>
+                <Span className="event-icon">
+                  <Icon name={index % 2 === 0 ? "calendar" : "briefcase"} />
+                </Span>
+                <Div className="event-title">
+                  <Small>
+                    {event.type.toUpperCase()} ·{" "}
+                    {event.date?.trim()
+                      ? event.date.toUpperCase()
+                      : "DATE TO BE ANNOUNCED"}
+                  </Small>
+                  <H3>{event.title}</H3>
+                  <Div className="event-meta">
+                    <Span>
+                      <Icon name="pin" /> {event.venue?.trim() || "IIUC campus"}
+                    </Span>
+                    {event.deadline?.trim() && (
+                      <Span>
+                        <Icon name="clock" /> Register by {event.deadline}
+                      </Span>
+                    )}
+                  </Div>
+                </Div>
+                <Span
+                  className={`event-status status-${status
+                    .toLowerCase()
+                    .replace(/\s+/g, "-")}`}
+                >
+                  {status}
+                </Span>
+                <Button
+                  className="round-button"
+                  aria-label={`View ${event.title} event`}
+                  onClick={() => setSelectedEvent(event.title)}
+                >
+                  <Icon name="arrow" />
+                </Button>
               </Div>
-              <Span className="event-location">IIUC campus</Span>
-              <Button
-                className="round-button"
-                aria-label={`View ${event.title} event`}
-                onClick={() => setSelectedEvent(event.title)}
-              >
-                <Icon name="arrow" />
-              </Button>
-            </Div>
-          ))}
+            )
+          })}
           {displayedEvents.length === 0 && (
             <P>No upcoming events have been published yet.</P>
           )}
@@ -650,15 +845,23 @@ export default function HomePage() {
           </button>
         </section>
       </main>
-      <footer className="wrap">
+      <footer className="wrap site-footer">
         <div className="footer-main">
-          <a href="#" className="brand">
-            <img src="/images/club-logo.png" alt="Economics and Banking Club" />
-            <div>
-              Economics & Banking Club
-              <small>Learn together. Grow together.</small>
-            </div>
-          </a>
+          <div className="footer-brand">
+            <a href="#" className="brand">
+              <img
+                src="/images/club-logo.png"
+                alt="Economics and Banking Club"
+              />
+              <div>
+                Economics & Banking Club
+                <small>Learn together. Grow together.</small>
+              </div>
+            </a>
+            <p className="footer-made-for">
+              Made for the Economics &amp; Banking community at IIUC.
+            </p>
+          </div>
           <form
             onSubmit={async (e) => {
               e.preventDefault()
@@ -694,29 +897,95 @@ export default function HomePage() {
             </small>
           </form>
         </div>
-        <div className="footer-socials">
-          <span>Stay connected with our community</span>
+        <div className="footer-columns">
+          <nav aria-label="Footer quick links">
+            <div className="eyebrow">QUICK LINKS</div>
+            <ul>
+              {[
+                ["About us", "#about"],
+                ["Activities", "#activities"],
+                ["Our legacy", "#legacy"],
+                ["Events", "#events"],
+                ["Leadership", "#executives"],
+              ].map(([label, target]) => (
+                <li key={target}>
+                  <a href={target}>{label}</a>
+                </li>
+              ))}
+              <li>
+                <button type="button" onClick={openJoin}>
+                  Join the club
+                </button>
+              </li>
+            </ul>
+          </nav>
           <div>
-            <a
-              href="https://www.facebook.com/profile.php?id=61566081578577"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Club Facebook page (opens in a new tab)"
-            >
-              <Icon name="facebook" />
-              Facebook
-              <Icon name="arrow" />
-            </a>
-            <a
-              href="https://instagram.com/ebclub_iiuc?xtok=MXNpcDkwbW83ZDVrYg%3D%3D"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Club Instagram profile (opens in a new tab)"
-            >
-              <Icon name="instagram" />
-              Instagram
-              <Icon name="arrow" />
-            </a>
+            <div className="eyebrow">CONTACT</div>
+            <ul className="footer-contact">
+              <li>
+                <Icon name="mail" />
+                {managedContent.contactEmail ? (
+                  <a href={`mailto:${managedContent.contactEmail}`}>
+                    {managedContent.contactEmail}
+                  </a>
+                ) : (
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61566081578577"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Message us on Facebook
+                  </a>
+                )}
+              </li>
+              <li>
+                <Icon name="pin" />
+                <address>
+                  Department of Economics &amp; Banking
+                  <br />
+                  International Islamic University Chittagong
+                  <br />
+                  Kumira, Chattogram 4318, Bangladesh
+                </address>
+              </li>
+            </ul>
+          </div>
+          <div className="footer-follow">
+            <div className="eyebrow">FOLLOW US</div>
+            <div>
+              <a
+                href="https://www.facebook.com/profile.php?id=61566081578577"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Club Facebook page (opens in a new tab)"
+              >
+                <Icon name="facebook" />
+                Facebook
+                <Icon name="arrow" />
+              </a>
+              <a
+                href="https://instagram.com/ebclub_iiuc?xtok=MXNpcDkwbW83ZDVrYg%3D%3D"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Club Instagram profile (opens in a new tab)"
+              >
+                <Icon name="instagram" />
+                Instagram
+                <Icon name="arrow" />
+              </a>
+              {managedContent.linkedinUrl && (
+                <a
+                  href={managedContent.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Club LinkedIn page (opens in a new tab)"
+                >
+                  <Icon name="linkedin" />
+                  LinkedIn
+                  <Icon name="arrow" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
         <div className="footer-bottom">

@@ -166,26 +166,130 @@ export const aboutTopics = [
   },
 ]
 
-export const activities = [
+const photo = (id: string) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`
+
+export const heroAchievements = [
+  "EB Day 2020",
+  "EB Winter Fest 2025",
+  "Student-led community",
+]
+
+export const clubFacts = [
   {
-    category: "Learning",
-    title: "Learning beyond the classroom.",
-    text: "Explore economics, financial markets, and banking through seminars, workshops, and thoughtful conversations.",
-    icon: "chart",
-    label: "Seminars & workshops",
+    value: "6",
+    label: "Activity formats",
+    text: "Tours, tournaments, workshops, visits, health camps, and leadership programmes.",
   },
   {
-    category: "Growth",
-    title: "Build skills. Find your direction.",
-    text: "Connect theory with real-world experience through industrial visits, case studies, and career-focused initiatives.",
-    icon: "briefcase",
-    label: "Career & industry",
+    value: "1-year",
+    label: "Executive terms",
+    text: "A new student committee leads the club each year.",
   },
   {
-    category: "Community",
-    title: "Better together, by design.",
-    text: "Create meaningful campus experiences through tours, tournaments, health camps, and community celebrations.",
-    icon: "people",
-    label: "Community & events",
+    value: "2",
+    label: "Landmark festivals",
+    text: "EB Day 2020 and EB Winter Fest 2025.",
   },
 ]
+
+export const legacyMilestones = [
+  {
+    year: "2020",
+    title: "EB Day 2020",
+    text: "A landmark celebration of the Department of Economics & Banking that drew attention across IIUC and set the tone for the club's journey.",
+    image: "",
+    highlights: [
+      "A department-wide celebration of Economics & Banking",
+      "Recognised across the IIUC campus",
+      "Set the tone for the club's yearly programmes",
+    ],
+  },
+  {
+    year: "2023",
+    title: "Student development initiatives",
+    text: "A stronger focus on skill-building, connecting classroom learning with real-world experience and professional preparation.",
+    image: "",
+    highlights: [
+      "Research and debate workshops",
+      "Industrial visits and career-focused sessions",
+      "Leadership development programmes",
+    ],
+  },
+  {
+    year: "2025",
+    title: "EB Winter Fest 2025",
+    text: "A festival that brought students, faculty, and friends of the department together, and remains one of the club's most memorable milestones.",
+    image: "",
+    highlights: [
+      "A campus-wide winter celebration",
+      "Students, faculty, and friends of the department together",
+      "One of the club's most memorable milestones",
+    ],
+  },
+]
+
+export const activityCategories = ["Learning", "Growth", "Community"] as const
+
+export const activities = [
+  {
+    id: "workshops",
+    category: "Learning",
+    label: "Seminars & workshops",
+    title: "Learning beyond the classroom.",
+    text: "Research and debate workshops, seminars, and thoughtful conversations on economics, markets, and banking.",
+    icon: "chart",
+    image: photo("1503428593586-e225b39bddfe"),
+    alt: "Participants writing in notebooks during a workshop",
+  },
+  {
+    id: "industrial-visits",
+    category: "Growth",
+    label: "Industrial visits",
+    title: "See how industry really works.",
+    text: "Visits to factories, banks, and offices that connect theory with the way organisations operate every day.",
+    icon: "briefcase",
+    image: photo("1651525670114-2b8117390b28"),
+    alt: "A group of visitors touring a factory floor",
+  },
+  {
+    id: "leadership",
+    category: "Growth",
+    label: "Leadership programmes",
+    title: "Build skills. Find your direction.",
+    text: "Leadership development, teamwork, and career-focused sessions that prepare members for what comes next.",
+    icon: "people",
+    image: photo("1758270705317-3ef6142d306f"),
+    alt: "Students working together around a laptop",
+  },
+  {
+    id: "tournaments",
+    category: "Community",
+    label: "Sports tournaments",
+    title: "Cricket, football, and team spirit.",
+    text: "Departmental cricket and football tournaments that bring batches together on and off the field.",
+    icon: "flag",
+    image: photo("1565787154274-c8d076ad34e7"),
+    alt: "Students playing cricket on an open field",
+  },
+  {
+    id: "health-camp",
+    category: "Community",
+    label: "Health camps",
+    title: "Caring for our community.",
+    text: "Health camps and volunteer initiatives where members give their time to support others.",
+    icon: "heart",
+    image: photo("1623658045230-605cb00c80d6"),
+    alt: "A volunteer checking blood pressure at a health camp",
+  },
+  {
+    id: "tours",
+    category: "Community",
+    label: "Departmental tours",
+    title: "Explore together, return closer.",
+    text: "Departmental tours and trips that turn classmates into lifelong friends.",
+    icon: "pin",
+    image: photo("1706350338997-d57d49a9c83e"),
+    alt: "A group of students standing together on a rocky beach",
+  },
+] as const

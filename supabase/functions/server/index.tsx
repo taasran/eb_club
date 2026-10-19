@@ -4,12 +4,14 @@ import { bodyLimit } from "npm:hono/body-limit";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import * as kv from "./kv_store.tsx";
 import { validContent, isOwner, canAccess, type Role } from "./validation.ts";
+import { describeContentChange, type ActivityEntry } from "./audit.ts";
 import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount, AccountAccessError } from "./account_access.ts";
 
-const app = new Hono<{ Variables: { ownerEmail: string; role: Role } }>();
+const app = new Hono<{ Variables: { ownerEmail: string; role: Role; actorName: string } }>();
 const base = "/make-server-ad6cf477";
 const contentKey = "eb:content";
 const bucket = "make-ad6cf477-club-images";
+const activityLimit = 500;
 const db = () => createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -33,7 +35,7 @@ app.onError((error, c) => {
 });
 app.notFound((c) => c.json({ error: "API route not found. Deploy the latest club backend." }, 404));
 
-app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v3" }));
+app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v4" }));
 
 // Authentication and authorization are separate: signing up never grants admin access.
 app.use(`${base}/admin/*`, async (c, next) => {
@@ -56,7 +58,26 @@ app.use(`${base}/admin/*`, async (c, next) => {
   }
   c.set("ownerEmail", email);
   c.set("role", role);
+  c.set("actorName", String(data.user.user_metadata?.full_name ?? "").trim().slice(0, 100));
   await next();
+});
+
+// Best-effort audit trail; a logging failure must never block the admin's action.
+async function logActivity(c: { get(key: "ownerEmail" | "role" | "actorName"): string }, action: string, area: string, details: string[] = []) {
+  try {
+    const at = new Date().toISOString();
+    const id = `${at}-${crypto.randomUUID().slice(0, 8)}`;
+    const entry: ActivityEntry = { id, at, actor: c.get("ownerEmail"), actorName: c.get("actorName"), role: c.get("role"), action, area, details };
+    await kv.set(`eb:audit:${id}`, entry);
+  } catch (error) {
+    console.error("Activity log failed:", (error as Error).message);
+  }
+}
+
+app.get(`${base}/admin/activity`, async (c) => {
+  const entries: ActivityEntry[] = await kv.getByPrefix("eb:audit:");
+  entries.sort((a, b) => b.at.localeCompare(a.at));
+  return c.json({ entries: entries.slice(0, activityLimit) });
 });
 
 app.get(`${base}/admin/session`, (c) =>
@@ -69,11 +90,16 @@ app.get(`${base}/admin/team`, async (c) => {
 app.put(`${base}/admin/team`, async (c) => {
   const body = await c.req.json().catch(() => null);
   await approveAccount(db().auth.admin, kv, c.get("ownerEmail"), body?.userId, body?.role);
+  const target = await db().auth.admin.getUserById(String(body?.userId));
+  await logActivity(c, `Set ${body?.role} access`, "Team access", [target.data.user?.email ?? String(body?.userId)]);
   return c.json({ ok: true });
 });
 
 app.delete(`${base}/admin/team/:userId`, async (c) => {
-  await deleteAccount(db().auth.admin, kv, c.get("ownerEmail"), c.req.param("userId"));
+  const userId = c.req.param("userId");
+  const target = await db().auth.admin.getUserById(userId);
+  await deleteAccount(db().auth.admin, kv, c.get("ownerEmail"), userId);
+  await logActivity(c, "Deleted account", "Team access", [target.data.user?.email ?? userId]);
   return c.json({ ok: true });
 });
 
@@ -85,7 +111,10 @@ app.get(`${base}/public/content`, async (c) => {
 app.put(`${base}/admin/content`, async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!validContent(body?.content)) return c.json({ error: "Invalid website content." }, 400);
+  const previous = await kv.get(contentKey);
   await kv.set(contentKey, body.content);
+  const { area, details } = describeContentChange(previous ?? null, body.content);
+  if (details.length) await logActivity(c, "Saved website changes", area, details);
   return c.json({ ok: true });
 });
 
@@ -125,7 +154,10 @@ app.get(`${base}/admin/submissions`, async (c) => {
 app.delete(`${base}/admin/submissions/:id`, async (c) => {
   const id = c.req.param("id");
   if (!/^(join|newsletter)-[a-f0-9]{64}$/.test(id)) return c.json({ error: "Invalid submission ID." }, 400);
+  const removed = await kv.get(`eb:submission:${id}`);
   await kv.del(`eb:submission:${id}`);
+  await logActivity(c, "Deleted inbox entry", "Inbox", [
+    `${removed?.type === "join" ? "Join request" : "Newsletter subscriber"}: ${removed?.data?.email ?? id}`]);
   return c.json({ ok: true });
 });
 
@@ -189,6 +221,7 @@ app.post(`${base}/admin/upload`, async (c) => {
     contentType: isPng ? "image/png" : "image/jpeg", upsert: false,
   });
   if (error) throw error;
+  await logActivity(c, "Uploaded image", "Uploads", [`${isPng ? "PNG" : "JPG"} · ${Math.round(file.size / 1024)} KB`]);
   return c.json({ url: storage.from(bucket).getPublicUrl(path).data.publicUrl });
 });
 

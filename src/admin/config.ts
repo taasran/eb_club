@@ -1,4 +1,5 @@
 import type { SiteContent as Content } from "../contentClient"
+import { legacyMilestones } from "../data/club"
 
 export const defaultContent: Content = {
   heroTitle: "Where curious minds meet possibility.",
@@ -7,8 +8,8 @@ export const defaultContent: Content = {
   campusImage:
     "https://images.unsplash.com/photo-1638636214032-581196ffd400?auto=format&fit=crop&w=1400&q=85",
   events: [
-    { title: "Economics in a changing world", type: "Proposed seminar" },
-    { title: "Your first step into banking", type: "Proposed workshop" },
+    { title: "Economics in a changing world", type: "Proposed seminar", status: "Coming Soon" },
+    { title: "Your first step into banking", type: "Proposed workshop", status: "Coming Soon" },
   ],
   executives: Array.from({ length: 4 }, (_, index) => ({
     name: "Name to be announced",
@@ -23,6 +24,8 @@ export const defaultContent: Content = {
     image: "",
   })),
   leadership: {},
+  legacy: structuredClone(legacyMilestones),
+  activityImages: {},
   archiveYears: [
     {
       year: "2024–25",
@@ -65,7 +68,7 @@ export const leadershipSections = [
   },
 ]
 
-export type Tab = "visitors" | "inbox" | "home" | "events" | "executives" | "leadership" | "archive" | "team"
+export type Tab = "visitors" | "inbox" | "home" | "events" | "legacy" | "executives" | "leadership" | "archive" | "team" | "activity"
 
 type AdminTab = {
   id: Tab
@@ -80,6 +83,12 @@ export const tabs: AdminTab[] = [
     label: "Account requests",
     hint: "Review, approve & remove",
     icon: "users",
+  },
+  {
+    id: "activity",
+    label: "Activity log",
+    hint: "Who changed what & when",
+    icon: "archive",
   },
   {
     id: "visitors",
@@ -104,6 +113,12 @@ export const tabs: AdminTab[] = [
     label: "Events",
     hint: "Upcoming programmes",
     icon: "calendar",
+  },
+  {
+    id: "legacy",
+    label: "Our Legacy",
+    hint: "Milestones timeline",
+    icon: "flag",
   },
   {
     id: "executives",

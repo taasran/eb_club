@@ -1,12 +1,21 @@
 import { ReactNode, useEffect, useState } from "react"
 import EconomicsLoader from "./EconomicsLoader"
 import { supabase, serverUrl, publicAnonKey } from "./supabase"
+import ActivityLog from "./admin/ActivityLog"
 import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
 import ProjectDownload from "./admin/ProjectDownload"
 import AdminControls from "./AdminControls"
-import { readContent, publishContent, type SiteContent } from "./contentClient"
+import {
+  readContent,
+  publishContent,
+  eventStatuses,
+  type EventStatus,
+  type LegacyMilestone,
+  type SiteContent,
+} from "./contentClient"
 import { announceContentUpdate } from "./useSiteContent"
+import { activities } from "./data/club"
 
 import {
   defaultContent,
@@ -113,6 +122,14 @@ const iconPaths: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="m5 12 5 5 9-10" />,
+  flag: (
+    <>
+      <path d="M5 21V4" />
+      <path d="M5 4h11l-2 4 2 4H5" />
+    </>
+  ),
+  up: <path d="m6 15 6-6 6 6" />,
+  down: <path d="m6 9 6 6 6-6" />,
   link: (
     <>
       <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
@@ -235,6 +252,60 @@ function ImageField({
           onChange={(event) => onChange(event.target.value)}
         />
       )}
+    </div>
+  )
+}
+
+function PhotoFit({
+  image,
+  zoom = 1,
+  x = 50,
+  y = 20,
+  onChange,
+}: {
+  image: string
+  zoom?: number
+  x?: number
+  y?: number
+  onChange: (patch: { imageZoom: number; imageX: number; imageY: number }) => void
+}) {
+  if (!image) return null
+  const set = (patch: Partial<{ imageZoom: number; imageX: number; imageY: number }>) =>
+    onChange({ imageZoom: zoom, imageX: x, imageY: y, ...patch })
+  return (
+    <div className="admin-photo-fit">
+      <div className="admin-photo-frame" aria-label="Photo preview">
+        <img
+          src={image}
+          alt=""
+          style={{
+            objectPosition: `${x}% ${y}%`,
+            transformOrigin: `${x}% ${y}%`,
+            transform: zoom > 1 ? `scale(${zoom})` : undefined,
+          }}
+        />
+      </div>
+      <div>
+        <label>
+          Zoom ({zoom.toFixed(1)}×)
+          <input type="range" min={1} max={3} step={0.1} value={zoom}
+            onChange={(e) => set({ imageZoom: Number(e.target.value) })} />
+        </label>
+        <label>
+          Left ↔ right
+          <input type="range" min={0} max={100} value={x}
+            onChange={(e) => set({ imageX: Number(e.target.value) })} />
+        </label>
+        <label>
+          Up ↕ down
+          <input type="range" min={0} max={100} value={y}
+            onChange={(e) => set({ imageY: Number(e.target.value) })} />
+        </label>
+        <button type="button" className="admin-link"
+          onClick={() => onChange({ imageZoom: 1, imageX: 50, imageY: 20 })}>
+          Reset position
+        </button>
+      </div>
     </div>
   )
 }
@@ -615,6 +686,26 @@ export default function AdminPage() {
         itemIndex === index ? { ...item, ...patch } : item,
       ),
     }))
+  const updateMilestone = (index: number, patch: Partial<LegacyMilestone>) =>
+    setContent((current) => ({
+      ...current,
+      legacy: (current.legacy ?? []).map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item,
+      ),
+    }))
+  const moveMilestone = (index: number, direction: -1 | 1) =>
+    setContent((current) => {
+      const legacy = [...(current.legacy ?? [])]
+      const target = index + direction
+      if (target < 0 || target >= legacy.length) return current
+      ;[legacy[index], legacy[target]] = [legacy[target], legacy[index]]
+      return { ...current, legacy }
+    })
+  const setActivityImage = (id: string, url: string) =>
+    setContent((current) => ({
+      ...current,
+      activityImages: { ...current.activityImages, [id]: url },
+    }))
   const updatePerson = (slug: string, index: number, patch: Partial<Person>) =>
     setContent((current) => ({
       ...current,
@@ -651,10 +742,12 @@ export default function AdminPage() {
 
   const counts: Record<Tab, number> = {
     team: 0,
+    activity: 0,
     visitors: 0,
     inbox: submissions.length,
     home: 0,
     events: content.events.length,
+    legacy: (content.legacy ?? []).length,
     executives: content.executives.length,
     leadership: Object.values(content.leadership).reduce(
       (total, list) => total + list.length,
@@ -683,6 +776,7 @@ export default function AdminPage() {
     Math.max(content.archiveYears.length - 1, 0),
   )
   const year = content.archiveYears[safeYear]
+  const milestones = content.legacy ?? []
 
   return (
     <main className="admin-shell admin-app">
@@ -697,7 +791,7 @@ export default function AdminPage() {
           {tabs
             .filter(
               (item) =>
-                (item.id !== "team" || adminRole === "owner") &&
+                ((item.id !== "team" && item.id !== "activity") || adminRole === "owner") &&
                 (item.id !== "inbox" || adminRole !== "moderator"),
             )
             .map((item) => (
@@ -754,6 +848,10 @@ export default function AdminPage() {
 
         {tab === "team" && adminRole === "owner" && (
           <AdminAccess request={request} ownerEmail={adminEmail} />
+        )}
+
+        {tab === "activity" && adminRole === "owner" && (
+          <ActivityLog request={request} />
         )}
 
         {tab === "visitors" &&
@@ -1131,6 +1229,192 @@ export default function AdminPage() {
                 }
               />
             </div>
+            <SectionHeader
+              eyebrow="ACTIVITIES"
+              title="Activity photos"
+              description="Shown at the top of each activity card. Leave empty to use the default photo."
+            />
+            <div className="admin-people">
+              {activities.map((activity) => (
+                <div className="admin-card" key={activity.id}>
+                  <ImageField
+                    size="1200 × 800 px (landscape 3:2)"
+                    label={`${activity.category} · ${activity.label}`}
+                    value={content.activityImages?.[activity.id] ?? ""}
+                    onChange={(value) => setActivityImage(activity.id, value)}
+                    onUpload={(file) =>
+                      uploadImage(file, (url) =>
+                        setActivityImage(activity.id, url),
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+            <SectionHeader
+              eyebrow="FOOTER"
+              title="Contact & social links"
+              description="Shown in the website footer. Leave a field empty to hide it."
+            />
+            <div className="admin-card">
+              <div className="admin-grid two">
+                <Field
+                  label="Club email"
+                  value={content.contactEmail ?? ""}
+                  placeholder="e.g. ebclub@example.com"
+                  onChange={(value) =>
+                    setContent((current) => ({
+                      ...current,
+                      contactEmail: value.trim(),
+                    }))
+                  }
+                />
+                <Field
+                  label="LinkedIn page link"
+                  value={content.linkedinUrl ?? ""}
+                  placeholder="https://www.linkedin.com/…"
+                  onChange={(value) =>
+                    setContent((current) => ({
+                      ...current,
+                      linkedinUrl: value.trim(),
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === "legacy" && (
+          <>
+            <SectionHeader
+              eyebrow="OUR LEGACY"
+              title="Legacy milestones"
+              description="Each milestone appears on the home page Legacy Timeline in the order shown here. Visitors click a milestone to see its photo, description, and highlights."
+              action={
+                <button
+                  type="button"
+                  className="admin-btn ghost"
+                  onClick={() =>
+                    setContent((current) => ({
+                      ...current,
+                      legacy: [
+                        ...(current.legacy ?? []),
+                        {
+                          year: "",
+                          title: "",
+                          text: "",
+                          image: "",
+                          highlights: [],
+                        },
+                      ],
+                    }))
+                  }
+                >
+                  <AdminIcon name="plus" /> Add milestone
+                </button>
+              }
+            />
+            {milestones.length === 0 && (
+              <div className="admin-empty">
+                No milestones yet. The Legacy Timeline is hidden until you add
+                one.
+              </div>
+            )}
+            <div className="admin-people">
+              {milestones.map((item, index) => (
+                <article className="admin-card admin-person" key={index}>
+                  <div className="admin-person-head">
+                    <span className="admin-index">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <strong>{item.title || "Untitled milestone"}</strong>
+                    <button
+                      type="button"
+                      className="admin-icon-btn"
+                      aria-label="Move milestone earlier"
+                      title="Move earlier"
+                      disabled={index === 0}
+                      onClick={() => moveMilestone(index, -1)}
+                    >
+                      <AdminIcon name="up" />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-icon-btn"
+                      aria-label="Move milestone later"
+                      title="Move later"
+                      disabled={index === milestones.length - 1}
+                      onClick={() => moveMilestone(index, 1)}
+                    >
+                      <AdminIcon name="down" />
+                    </button>
+                    <RemoveButton
+                      label="Remove milestone"
+                      onClick={() =>
+                        setContent((current) => ({
+                          ...current,
+                          legacy: (current.legacy ?? []).filter(
+                            (_, itemIndex) => itemIndex !== index,
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                  <ImageField
+                    size="1200 × 800 px (landscape 3:2)"
+                    label="Milestone photo (optional)"
+                    value={item.image}
+                    onChange={(value) =>
+                      updateMilestone(index, { image: value })
+                    }
+                    onUpload={(file) =>
+                      uploadImage(file, (url) =>
+                        updateMilestone(index, { image: url }),
+                      )
+                    }
+                  />
+                  <div className="admin-grid two">
+                    <Field
+                      label="Year"
+                      value={item.year}
+                      placeholder="e.g. 2025"
+                      onChange={(value) =>
+                        updateMilestone(index, { year: value })
+                      }
+                    />
+                    <Field
+                      label="Title"
+                      value={item.title}
+                      placeholder="e.g. EB Winter Fest 2025"
+                      onChange={(value) =>
+                        updateMilestone(index, { title: value })
+                      }
+                    />
+                  </div>
+                  <Field
+                    label="Description"
+                    value={item.text}
+                    multiline
+                    placeholder="What happened and why it mattered"
+                    onChange={(value) =>
+                      updateMilestone(index, { text: value })
+                    }
+                  />
+                  <Field
+                    label="Event highlights (one per line)"
+                    value={(item.highlights ?? []).join("\n")}
+                    multiline
+                    placeholder={"e.g. Campus-wide celebration\nCultural programme"}
+                    onChange={(value) =>
+                      updateMilestone(index, {
+                        highlights: value ? value.split("\n") : [],
+                      })
+                    }
+                  />
+                </article>
+              ))}
+            </div>
           </>
         )}
 
@@ -1147,7 +1431,17 @@ export default function AdminPage() {
                   onClick={() =>
                     setContent((current) => ({
                       ...current,
-                      events: [...current.events, { title: "", type: "" }],
+                      events: [
+                        ...current.events,
+                        {
+                          title: "",
+                          type: "",
+                          status: "Coming Soon",
+                          date: "",
+                          venue: "",
+                          deadline: "",
+                        },
+                      ],
                     }))
                   }
                 >
@@ -1179,6 +1473,41 @@ export default function AdminPage() {
                       placeholder="e.g. Seminar"
                       onChange={(value) => updateEvent(index, { type: value })}
                     />
+                    <label className="admin-field">
+                      <span>Status</span>
+                      <select
+                        value={item.status ?? "Coming Soon"}
+                        onChange={(event) =>
+                          updateEvent(index, {
+                            status: event.target.value as EventStatus,
+                          })
+                        }
+                      >
+                        {eventStatuses.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <Field
+                      label="Date"
+                      value={item.date ?? ""}
+                      placeholder="e.g. 12 May 2026, 10:00 AM"
+                      onChange={(value) => updateEvent(index, { date: value })}
+                    />
+                    <Field
+                      label="Venue"
+                      value={item.venue ?? ""}
+                      placeholder="IIUC campus"
+                      onChange={(value) => updateEvent(index, { venue: value })}
+                    />
+                    <Field
+                      label="Registration deadline"
+                      value={item.deadline ?? ""}
+                      placeholder="e.g. 10 May 2026"
+                      onChange={(value) =>
+                        updateEvent(index, { deadline: value })
+                      }
+                    />
                   </div>
                   <RemoveButton
                     label="Remove event"
@@ -1202,7 +1531,7 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="EXECUTIVE COMMITTEE"
               title="Current team"
-              description="The first four appear in Club Leadership. The full committee, including those leaders, appears with details in the Club Executives slider."
+              description="The first three (President, Vice President, General Secretary) are featured in Club Leadership. The full committee, including those leaders, appears in the Club Executives slider."
               action={
                 <button
                   type="button"
@@ -1259,6 +1588,13 @@ export default function AdminPage() {
                       )
                     }
                   />
+                  <PhotoFit
+                    image={item.image}
+                    zoom={item.imageZoom}
+                    x={item.imageX}
+                    y={item.imageY}
+                    onChange={(patch) => updateExecutive(index, patch)}
+                  />
                   <div className="admin-grid two">
                     <Field
                       label="Name"
@@ -1289,6 +1625,14 @@ export default function AdminPage() {
                       }
                     />
                   </div>
+                  <Field
+                    label="Short quote (shown on hover)"
+                    value={item.quote ?? ""}
+                    placeholder="Leave empty to show the role's responsibility"
+                    onChange={(value) =>
+                      updateExecutive(index, { quote: value })
+                    }
+                  />
                 </article>
               ))}
             </div>

@@ -126,8 +126,9 @@ export default function ExecutiveShowcase({
   return (
     <Div>
       <Div className="eyebrow leadership-heading">CLUB LEADERSHIP</Div>
+      {/* President, Vice President and General Secretary are featured. */}
       <Div className="compact-leadership">
-        {profiles.slice(0, 4).map((person, index) => card(person, index, true))}
+        {profiles.slice(0, 3).map((person, index) => card(person, index, true))}
       </Div>
       <Div
         className={

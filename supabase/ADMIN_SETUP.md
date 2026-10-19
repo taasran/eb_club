@@ -25,6 +25,13 @@ can manage content, uploads and analytics, but cannot read/delete inbox entries.
 Only the owner can list or change team access. The owner's role is protected.
 Roles are checked on every request, so revocation does not depend on signing out.
 
+## Activity log
+
+Every content save, image upload, inbox deletion and access approval/removal is
+written to the KV table (`eb:audit:*`) with the actor's email, name, role, time
+and a summary of what changed. The owner reads it under **Activity log**; admins
+and moderators cannot. Redeploy the Supabase function to start recording.
+
 ## Account requests, approval and removal
 
 1. A new user opens `/admin`, selects **Create account**, and enters their full
@@ -74,7 +81,7 @@ reset it. Password reset does not change any approval or role.
 
 ## Deployment checks
 
-1. `/health` should return `version: "club-admin-v3"`.
+1. `/health` should return `version: "club-admin-v4"`.
 2. `/admin/session` without a user token should return 401.
 3. A confirmed account without a team grant should receive 403.
 4. The confirmed owner should receive their email and `role: "owner"`.

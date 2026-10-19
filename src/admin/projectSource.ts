@@ -6,7 +6,7 @@ import { adminSignInUrl } from "./onboarding"
 // `env` is absent when Node tests import this module outside Vite.
 const endpoint = import.meta.env?.DEV
   ? "/.netlify/functions/project-source"
-  : new URL("/.netlify/functions/project-source", adminSignInUrl).toString()
+  : new URL("/api/project-source", adminSignInUrl).toString()
 
 export async function requestProjectSource(
   metadata = false,

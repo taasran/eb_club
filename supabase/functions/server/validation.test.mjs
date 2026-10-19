@@ -33,7 +33,25 @@ for (const invalid of [
   null, {}, { ...content, campusImage: "javascript:alert(1)" },
   { ...content, events: [{}] }, { ...content, leadership: { bad: [] } },
   { ...content, executives: [{ name: "A" }] }, { ...content, heroTitle: "x".repeat(10001) },
+  { ...content, legacy: [{ year: "2020", title: "EB Day" }] },
+  { ...content, legacy: [{ year: "2020", title: "EB Day", text: "", image: "javascript:alert(1)" }] },
+  { ...content, activityImages: { "bad key!": "" } },
+  { ...content, events: [{ title: "A", type: "B", status: "Cancelled" }] },
+  { ...content, contactEmail: "not-an-email" },
+  { ...content, linkedinUrl: "javascript:alert(1)" },
 ]) assert.equal(validContent(invalid), false);
+assert.equal(validContent({
+  ...content,
+  legacy: [{ year: "2020", title: "EB Day 2020", text: "Milestone", image: "" }],
+  activityImages: { workshops: "https://example.com/a.jpg", tours: "" },
+}), true);
+assert.equal(validContent({
+  ...content,
+  events: [{ title: "Seminar", type: "Seminar", status: "Registration Open", date: "12 May", venue: "IIUC", deadline: "10 May" }],
+  executives: [{ name: "A", designation: "President", studentId: "", batch: "", image: "", quote: "Lead together." }],
+  legacy: [{ year: "2020", title: "EB Day", text: "", image: "", highlights: ["One", "Two"] }],
+  contactEmail: "club@example.com", linkedinUrl: "https://www.linkedin.com/company/example",
+}), true);
 assert.equal(validContent({
   ...content,
   leadership: { "former-presidents": [{ name: "A", designation: "President", session: "2025", image: "" }] },

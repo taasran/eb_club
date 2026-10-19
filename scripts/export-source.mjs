@@ -14,6 +14,7 @@ const sourceFolders = [
   "guidelines",
   ".github",
   "netlify",
+  "functions",
 ]
 const rootFiles = [
   "package.json",

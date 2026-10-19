@@ -2,11 +2,29 @@ export type SiteContent = {
   heroTitle: string
   heroDescription: string
   campusImage: string
-  events: { title: string; type: string }[]
-  executives: { name: string; designation: string; studentId: string; batch: string; image: string }[]
+  events: ClubEvent[]
+  executives: { name: string; designation: string; studentId: string; batch: string; image: string; quote?: string; imageZoom?: number; imageX?: number; imageY?: number }[]
   leadership: Record<string, { name: string; designation: string; session: string; image: string }[]>
   archiveYears: { year: string; members: { name: string; designation: string; studentId: string; batch: string }[] }[]
+  // Optional so content saved before these sections existed stays valid.
+  legacy?: LegacyMilestone[]
+  // Keyed by activity id, e.g. "workshops" or "tours".
+  activityImages?: Record<string, string>
+  contactEmail?: string
+  linkedinUrl?: string
 }
+
+export const eventStatuses = ["Upcoming", "Registration Open", "Coming Soon", "Completed"] as const
+export type EventStatus = (typeof eventStatuses)[number]
+export type ClubEvent = {
+  title: string
+  type: string
+  status?: EventStatus
+  date?: string
+  venue?: string
+  deadline?: string
+}
+export type LegacyMilestone = { year: string; title: string; text: string; image: string; highlights?: string[] }
 
 type AdminRequest = (path: string, init?: RequestInit) => Promise<Response>
 

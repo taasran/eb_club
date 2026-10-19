@@ -62,9 +62,6 @@ export default function ExecutiveCard({
             <Icon name="people" />
           </span>
         )}
-        <span className="executive-index">
-          {String(index + 1).padStart(2, "0")}
-        </span>
         {!person?.image && (
           <span className="executive-portrait-label">PORTRAIT TO COME</span>
         )}

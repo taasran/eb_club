@@ -7,7 +7,8 @@ import { adminSignInUrl } from "./onboarding"
 const endpoint = import.meta.env?.DEV
   ? "/.netlify/functions/project-source"
   : new URL("/.netlify/functions/project-source", adminSignInUrl).toString()
-  export async function requestProjectSource(
+
+export async function requestProjectSource(
   metadata = false,
 ): Promise<Response> {
   const { data, error } = await supabase.auth.getSession()

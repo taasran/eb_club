@@ -59,7 +59,7 @@ export default function HomePage() {
     )
     mainRef.current
       ?.querySelectorAll(
-        ".about, .about-resources, .section-heading, .activity-card, .executive-card, .event-row, .join-banner",
+        ".welcome-message, .about, .about-resources, .section-heading, .activity-card, .executive-card, .event-row, .join-banner",
       )
       .forEach((element) => observer.observe(element))
     const stopMotion = () => {
@@ -282,20 +282,20 @@ export default function HomePage() {
         >
           <div className="hero-copy">
             <div className="eyebrow">
-              <span className="dot" /> LEARN. CONNECT. LEAD.
+              <span className="dot" /> WELCOME TO IIUC EBC
             </div>
             <h1>
               {managedContent.heroTitle ?? (
                 <>
-                  Where curious minds
+                  Learn together.
                   <br />
-                  meet <em>possibility.</em>
+                  Lead with <em>purpose.</em>
                 </>
               )}
             </h1>
             <p className="hero-description">
               {managedContent.heroDescription ??
-                "A home for the thinkers, changemakers, and future leaders of economics and banking. Together, we learn beyond the classroom and grow beyond expectations."}
+                "Welcome to IIUC Economics & Banking Club—a vibrant student community where learning, connection, and leadership help every member move forward."}
             </p>
             <div className="hero-actions">
               <button className="button primary" onClick={openJoin}>
@@ -348,6 +348,93 @@ export default function HomePage() {
             <div className="vertical-label">
               KNOWLEDGE · CONNECTION · IMPACT
             </div>
+          </div>
+        </section>
+
+        <section
+          id="welcome"
+          className="welcome-message wrap section"
+          aria-labelledby="welcome-title"
+        >
+          <div className="welcome-message-heading">
+            <div className="eyebrow">A MESSAGE FROM EB CLUB</div>
+            <p className="welcome-invocation">Bismillahir Rahmanir Rahim</p>
+            <p className="welcome-greeting">Assalamu Alaikum</p>
+            <h2 id="welcome-title">
+              Welcome to Economics &amp; Banking Club, <em>IIUC.</em>
+            </h2>
+          </div>
+          <div className="welcome-message-copy">
+            <p>
+              The Economics &amp; Banking Club (EB Club) is the departmental
+              club of the Department of Economics and Banking at the
+              International Islamic University Chittagong (IIUC). The club
+              serves as a platform for students to learn, grow, develop their
+              skills, and build meaningful connections beyond the classroom.
+            </p>
+            <p>
+              Our primary goal is to work for the welfare of the students and
+              the overall development of the department. We are committed to
+              preparing students for their future careers by creating
+              opportunities to enhance their academic knowledge, practical
+              skills, leadership abilities, and professional experience.
+            </p>
+            <p>
+              A new executive committee is generally formed at the beginning of
+              each year, with each committee serving a one-year term.
+              Throughout the year, EB Club organizes departmental tours,
+              cricket and football tournaments, research and debate workshops,
+              industrial visits, health camps, leadership development
+              programmes, and other academic, cultural, and extracurricular
+              events.
+            </p>
+            <p>
+              Among the most remarkable initiatives of EB Club are EB Day 2020
+              and EB Winter Fest 2025. Both programmes received significant
+              attention across IIUC and remain memorable milestones in the
+              club&apos;s journey.
+            </p>
+            <p>
+              Beyond organizing events, EB Club actively supports departmental
+              activities and works closely with students, faculty members, and
+              the department to create a more engaging, supportive, and
+              opportunity-driven academic environment.
+            </p>
+            <p>
+              As we move forward, our commitment remains the same: to serve our
+              department, empower our students, and build a stronger future for
+              the Economics and Banking community at IIUC.
+            </p>
+          </div>
+          <div className="welcome-message-pillars">
+            <article>
+              <div className="eyebrow">OUR MISSION</div>
+              <p>
+                To empower the students of the Department of Economics and
+                Banking at IIUC through academic growth, professional skill
+                development, leadership, research, teamwork, and personal
+                development. We foster an inclusive environment where students
+                can explore their potential, build practical knowledge, and
+                prepare for future challenges.
+              </p>
+            </article>
+            <article>
+              <div className="eyebrow">OUR VISION</div>
+              <p>
+                To establish EB Club as a leading departmental student
+                organization at IIUC, recognized for its commitment to student
+                development, innovation, leadership, and meaningful
+                initiatives—building confident, skilled, responsible, and
+                future-ready graduates.
+              </p>
+            </article>
+            <article className="welcome-commitment">
+              <div className="eyebrow">OUR COMMITMENT</div>
+              <p>
+                Together, we learn. Together, we grow. Together, we build the
+                future of Economics and Banking.
+              </p>
+            </article>
           </div>
         </section>
 

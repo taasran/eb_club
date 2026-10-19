@@ -140,54 +140,52 @@ export const defaultArchiveYears = [
 
 export const aboutTopics = [
   {
-    title: "Club History & Background",
-    id: "club-history",
-    text: "The Economics & Banking Club brings together students of the Department of Economics & Banking at IIUC. The official founding date, history, and milestones will be added once confirmed by the club.",
+    title: "About Us",
+    id: "about-us",
+    text: "IIUC Economics & Banking Club is a vibrant platform for students of the Department of Economics & Banking. Through learning, co-curricular activities, and collaboration, we help members build confidence and capability.",
   },
   {
-    title: "Vision, Mission & Objectives",
-    id: "club-vision",
-    text: "Our website highlights learning beyond the classroom, connecting students, and developing leadership. The club’s officially approved vision, mission, and objectives will be published here once provided.",
+    title: "Our Mission",
+    id: "our-mission",
+    text: "Our mission is to create meaningful opportunities for student skill-building, leadership, and career development. Through practical learning, teamwork, and professional preparation, we help members get ready for what comes next.",
   },
   {
-    title: "Club Constitution",
-    id: "club-constitution",
-    text: "The official club constitution is not yet available on this website. The approved document will be added here when provided by the club administration.",
+    title: "Our Vision",
+    id: "our-vision",
+    text: "We aspire to become an inspiring community that develops informed, innovative, and responsible young leaders in economics and banking.",
   },
   {
-    title: "Rules & Regulations",
-    id: "club-rules",
-    text: "Official membership requirements, participation guidelines, and club rules will be published after confirmation by the club administration.",
+    title: "Our Activities",
+    id: "our-activities",
+    text: "From tours, tournaments, workshops, industrial visits, and health camps to seminars and social initiatives, our activities give members meaningful ways to learn, connect, and participate.",
   },
-  { title: "Club Activities", id: "activities" },
-  { title: "Organizational Structure", id: "executives" },
   {
-    title: "Faculty Advisor & Club Administration",
-    id: "club-administration",
-    text: "Faculty advisor names, administrative responsibilities, and official contact details will be added once confirmed by the Department of Economics & Banking.",
+    title: "Our Legacy",
+    id: "our-legacy",
+    text: "EB Day 2020, EB Winter Fest 2025, and many other milestones mark our journey. Every initiative inspires new members to dream bigger, take part, and build something meaningful together.",
   },
 ]
 
 export const activities = [
   {
     category: "Learning",
-    title: "Ideas that go beyond the classroom.",
-    text: "Explore economic issues, financial markets, and the world of banking through seminars and thoughtful conversations.",
+    title: "Learning beyond the classroom.",
+    text: "Explore economics, financial markets, and banking through seminars, workshops, and thoughtful conversations.",
     icon: "chart",
-    label: "Seminars & discussions",
+    label: "Seminars & workshops",
   },
   {
     category: "Growth",
     title: "Build skills. Find your direction.",
-    text: "Connect theory with practice through skill-building workshops, case studies, and career-focused learning.",
+    text: "Connect theory with real-world experience through industrial visits, case studies, and career-focused initiatives.",
     icon: "briefcase",
-    label: "Workshops & career development",
+    label: "Career & industry",
   },
   {
     category: "Community",
     title: "Better together, by design.",
-    text: "Meet like-minded students, exchange perspectives, and create meaningful experiences with your campus community.",
+    text: "Create meaningful campus experiences through tours, tournaments, health camps, and community celebrations.",
     icon: "people",
-    label: "Networking & club life",
+    label: "Community & events",
   },
 ]

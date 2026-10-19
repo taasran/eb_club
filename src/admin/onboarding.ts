@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-export const adminSignInUrl = "https://ebclubiiuc.netlify.app/admin"
+export const adminSignInUrl = "https://ebclubiiuc.pages.dev/admin"
 export const passwordResetUrl = `${adminSignInUrl}/reset-password`
 
 export type AccountProfile = {

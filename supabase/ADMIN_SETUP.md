@@ -68,8 +68,8 @@ reset it. Password reset does not change any approval or role.
 
 - Enable the email provider and new-user signup.
 - In **Authentication → URL Configuration**, allow both redirect URLs:
-  `https://ebclubiiuc.netlify.app/admin` and
-  `https://ebclubiiuc.netlify.app/admin/reset-password`; use the public site as the Site URL.
+  `https://ebclubiiuc.pages.dev/admin` and
+  `https://ebclubiiuc.pages.dev/admin/reset-password`; use the public site as the Site URL.
   Authentication callbacks deliberately do not use the private Make preview.
 - Ensure the email templates for signup confirmation and password recovery include
   the actual confirmation link, rather than only a numeric OTP.

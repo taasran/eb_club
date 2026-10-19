@@ -1,4 +1,4 @@
-const origin = "https://ebclubiiuc.netlify.app"
+const origin = "https://ebclubiiuc.pages.dev"
 const homeTitle = "IIUC Economics & Banking Club | Learning, Leadership & Community"
 const homeDescription = "Explore the Economics & Banking Club at International Islamic University Chittagong (IIUC): student activities, events, executive committee and membership."
 

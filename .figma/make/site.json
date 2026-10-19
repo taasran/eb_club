@@ -8,7 +8,7 @@
     "icon": "/images/club-logo.png"
   },
   "openGraph": {
-    "image": "https://ebclubiiuc.netlify.app/images/club-banner.png"
+    "image": "https://ebclubiiuc.pages.dev/images/club-banner.png"
   },
   "accessibility": {
     "addBypassLinks": false,

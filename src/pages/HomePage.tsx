@@ -131,7 +131,7 @@ export default function HomePage() {
   }
   const isPreviewHost =
     typeof window !== "undefined" &&
-    window.location.hostname !== "ebclubiiuc.netlify.app"
+    window.location.hostname !== "ebclubiiuc.pages.dev"
 
   return (
     <div

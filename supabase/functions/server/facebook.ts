@@ -123,6 +123,11 @@ function hasVideoMedia(value: unknown): boolean {
   return false
 }
 
+function isVideoPermalink(value: unknown): boolean {
+  const url = safeUrl(value)
+  return Boolean(url && /\/(?:reel|reels|videos)\//i.test(new URL(url).pathname))
+}
+
 function normalizePosts(
   data: unknown[],
   pageId: string,
@@ -148,7 +153,9 @@ function normalizePosts(
       createdAt: new Date(post.created_time).toISOString(),
       url: safeUrl(post.permalink_url) ?? `https://www.facebook.com/${post.id}`,
       image: safeUrl(post.full_picture, true),
-      mediaType: isVideoMediaType(post.type) || hasVideoMedia(post.attachments)
+      mediaType: isVideoMediaType(post.type) ||
+        hasVideoMedia(post.attachments) ||
+        isVideoPermalink(post.permalink_url)
         ? "video"
         : safeUrl(post.full_picture, true)
           ? "image"
@@ -234,20 +241,33 @@ export function createFacebookFeed(dependencies: Dependencies) {
       let graphCode: number | undefined
       let graphSubcode: number | undefined
       try {
-        const url = new URL(`https://graph.facebook.com/v26.0/${pageId}/posts`)
-        url.searchParams.set(
-          "fields",
-          "id,message,created_time,permalink_url,full_picture,type,attachments{media_type,subattachments{media_type}}",
-        )
-        url.searchParams.set("limit", "6")
-        const response = await request(url, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(10000),
-          redirect: "error",
-        })
-        httpStatus = response.status
-        stage = "response"
-        const body = await response.json()
+        const fetchPosts = async (fields: string) => {
+          const url = new URL(`https://graph.facebook.com/v26.0/${pageId}/posts`)
+          url.searchParams.set("fields", fields)
+          url.searchParams.set("limit", "6")
+          stage = "request"
+          const response = await request(url, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10000),
+            redirect: "error",
+          })
+          httpStatus = response.status
+          stage = "response"
+          return { response, body: await response.json() }
+        }
+        const expandedFields =
+          "id,message,created_time,permalink_url,full_picture,type,attachments{media_type,subattachments{media_type}}"
+        const basicFields =
+          "id,message,created_time,permalink_url,full_picture"
+        let { response, body } = await fetchPosts(expandedFields)
+        // Some Page/token combinations reject nested attachment fields. A
+        // field error must not hide the otherwise usable Facebook feed.
+        if (
+          body?.error?.code === 100 &&
+          (!response.ok || !Array.isArray(body.data))
+        ) {
+          ;({ response, body } = await fetchPosts(basicFields))
+        }
         graphCode = Number.isSafeInteger(body?.error?.code)
           ? body.error.code
           : undefined

@@ -10,6 +10,8 @@ import {
   readContent,
   publishContent,
   eventStatuses,
+  currentClubTeam,
+  maxLegacyPhotos,
   type EventStatus,
   type LegacyMilestone,
   type SiteContent,
@@ -24,7 +26,7 @@ import {
   type Tab,
 } from "./admin/config"
 
-const { P, Main, Div, Link } = AdminControls
+const { P, Main, Div, Link, Button, Span, Article, Strong } = AdminControls
 
 type Content = SiteContent
 
@@ -554,6 +556,7 @@ export default function AdminPage() {
         ? {
             ...defaultContent,
             ...savedContent,
+            ...currentClubTeam(savedContent.executives, savedContent.clubLeadership),
             leadership: savedContent.leadership ?? {},
           }
         : defaultContent
@@ -669,10 +672,10 @@ export default function AdminPage() {
   type Person = Content["leadership"][string][number]
   type Executive = Content["executives"][number]
   type Member = Content["archiveYears"][number]["members"][number]
-  const updateExecutive = (index: number, patch: Partial<Executive>) =>
+  const updateExecutive = (index: number, patch: Partial<Executive>, list: "executives" | "clubLeadership" = "executives") =>
     setContent((current) => ({
       ...current,
-      executives: current.executives.map((item, itemIndex) =>
+      [list]: (current[list] ?? []).map((item, itemIndex) =>
         itemIndex === index ? { ...item, ...patch } : item,
       ),
     }))
@@ -701,6 +704,15 @@ export default function AdminPage() {
       ;[legacy[index], legacy[target]] = [legacy[target], legacy[index]]
       return { ...current, legacy }
     })
+  const updateMilestonePhotos = (index: number, update: (photos: string[]) => string[]) =>
+    setContent(current => ({
+      ...current,
+      legacy: (current.legacy ?? []).map((item, itemIndex) => {
+        if (itemIndex !== index) return item
+        const images = update(item.images ?? (item.image ? [item.image] : [])).slice(0, maxLegacyPhotos)
+        return { ...item, images, image: images.find(url => url.trim()) ?? "" }
+      }),
+    }))
   const setActivityImage = (id: string, url: string) =>
     setContent((current) => ({
       ...current,
@@ -749,6 +761,7 @@ export default function AdminPage() {
     events: content.events.length,
     legacy: (content.legacy ?? []).length,
     executives: content.executives.length,
+    clubLeadership: (content.clubLeadership ?? []).length,
     leadership: Object.values(content.leadership).reduce(
       (total, list) => total + list.length,
       0,
@@ -777,6 +790,9 @@ export default function AdminPage() {
   )
   const year = content.archiveYears[safeYear]
   const milestones = content.legacy ?? []
+  const teamList = tab === "clubLeadership" ? "clubLeadership" : "executives"
+  const teamProfiles = content[teamList] ?? []
+  const editingLeaders = teamList === "clubLeadership"
 
   return (
     <main className="admin-shell admin-app">
@@ -1290,7 +1306,7 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="OUR LEGACY"
               title="Legacy milestones"
-              description="Each milestone appears on the home page Legacy Timeline in the order shown here. Visitors click a milestone to see its photo, description, and highlights."
+              description="Add up to 15 programme photos per milestone. Photos fade automatically every 3 seconds when visitors open the milestone."
               action={
                 <button
                   type="button"
@@ -1322,7 +1338,9 @@ export default function AdminPage() {
               </div>
             )}
             <div className="admin-people">
-              {milestones.map((item, index) => (
+              {milestones.map((item, index) => {
+                const photos = item.images ?? (item.image ? [item.image] : [])
+                return (
                 <article className="admin-card admin-person" key={index}>
                   <div className="admin-person-head">
                     <span className="admin-index">
@@ -1361,19 +1379,38 @@ export default function AdminPage() {
                       }
                     />
                   </div>
-                  <ImageField
-                    size="1200 × 800 px (landscape 3:2)"
-                    label="Milestone photo (optional)"
-                    value={item.image}
-                    onChange={(value) =>
-                      updateMilestone(index, { image: value })
-                    }
-                    onUpload={(file) =>
-                      uploadImage(file, (url) =>
-                        updateMilestone(index, { image: url }),
-                      )
-                    }
-                  />
+                  <Div className="admin-person-head">
+                    <Strong>Programme photos · {photos.length} / {maxLegacyPhotos}</Strong>
+                    <Button
+                      type="button"
+                      className="admin-btn ghost"
+                      disabled={photos.length >= maxLegacyPhotos}
+                      onClick={() => updateMilestonePhotos(index, current => [...current, ""])}
+                    >
+                      <AdminIcon name="plus" /> Add photo
+                    </Button>
+                  </Div>
+                  {photos.length === 0 && <P className="form-note">No photos yet. Add up to 15 photos; a single photo is also supported.</P>}
+                  {photos.map((photo, photoIndex) => (
+                    <Div key={photoIndex}>
+                      <Div className="admin-person-head">
+                        <Span>Photo {photoIndex + 1}</Span>
+                        <RemoveButton
+                          label={`Remove photo ${photoIndex + 1}`}
+                          onClick={() => updateMilestonePhotos(index, current => current.filter((_, position) => position !== photoIndex))}
+                        />
+                      </Div>
+                      <ImageField
+                        size="1200 × 800 px (landscape 3:2)"
+                        label={`Programme photo ${photoIndex + 1}`}
+                        value={photo}
+                        onChange={value => updateMilestonePhotos(index, current => current.map((url, position) => position === photoIndex ? value : url))}
+                        onUpload={file => uploadImage(file, url =>
+                          updateMilestonePhotos(index, current => current.map((value, position) => position === photoIndex ? url : value)),
+                        )}
+                      />
+                    </Div>
+                  ))}
                   <div className="admin-grid two">
                     <Field
                       label="Year"
@@ -1413,7 +1450,7 @@ export default function AdminPage() {
                     }
                   />
                 </article>
-              ))}
+              )})}
             </div>
           </>
         )}
@@ -1526,24 +1563,26 @@ export default function AdminPage() {
           </>
         )}
 
-        {tab === "executives" && (
+        {(tab === "executives" || tab === "clubLeadership") && (
           <>
             <SectionHeader
-              eyebrow="EXECUTIVE COMMITTEE"
-              title="Current team"
-              description="The first three (President, Vice President, General Secretary) are featured in Club Leadership. The full committee, including those leaders, appears in the Club Executives slider."
+              eyebrow={editingLeaders ? "CLUB LEADERSHIP" : "CLUB EXECUTIVES"}
+              title={editingLeaders ? "Featured club leaders" : "Current executives"}
+              description={editingLeaders
+                ? "Add and manage leaders shown only in the upper Club Leadership section. These profiles are separate from Club Executives."
+                : "Manage the separate Club Executives list. Profiles advance automatically every 3 seconds, without slide buttons."}
               action={
-                <button
+                <Button
                   type="button"
                   className="admin-btn ghost"
                   onClick={() =>
                     setContent((current) => ({
                       ...current,
-                      executives: [
-                        ...current.executives,
+                      [teamList]: [
+                        ...(current[teamList] ?? []),
                         {
                           name: "",
-                          designation: "Executive Member",
+                          designation: editingLeaders ? "Club Leader" : "Executive Member",
                           studentId: "",
                           batch: "",
                           image: "",
@@ -1552,39 +1591,39 @@ export default function AdminPage() {
                     }))
                   }
                 >
-                  <AdminIcon name="plus" /> Add executive
-                </button>
+                  <AdminIcon name="plus" /> {editingLeaders ? "Add leader" : "Add executive"}
+                </Button>
               }
             />
             <div className="admin-people">
-              {content.executives.map((item, index) => (
-                <article className="admin-card admin-person" key={index}>
-                  <div className="admin-person-head">
-                    <span className="admin-index">
+              {teamProfiles.map((item, index) => (
+                <Article className="admin-card admin-person" key={`${teamList}-${index}`}>
+                  <Div className="admin-person-head">
+                    <Span className="admin-index">
                       {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <strong>{item.name || "Unnamed"}</strong>
+                    </Span>
+                    <Strong>{item.name || "Unnamed"}</Strong>
                     <RemoveButton
-                      label="Remove executive"
+                      label={editingLeaders ? "Remove leader" : "Remove executive"}
                       onClick={() =>
                         setContent((current) => ({
                           ...current,
-                          executives: current.executives.filter(
+                          [teamList]: (current[teamList] ?? []).filter(
                             (_, itemIndex) => itemIndex !== index,
                           ),
                         }))
                       }
                     />
-                  </div>
+                  </Div>
                   <ImageField
                     label="Photo"
                     value={item.image}
                     onChange={(value) =>
-                      updateExecutive(index, { image: value })
+                      updateExecutive(index, { image: value }, teamList)
                     }
                     onUpload={(file) =>
                       uploadImage(file, (url) =>
-                        updateExecutive(index, { image: url }),
+                        updateExecutive(index, { image: url }, teamList),
                       )
                     }
                   />
@@ -1593,47 +1632,47 @@ export default function AdminPage() {
                     zoom={item.imageZoom}
                     x={item.imageX}
                     y={item.imageY}
-                    onChange={(patch) => updateExecutive(index, patch)}
+                    onChange={(patch) => updateExecutive(index, patch, teamList)}
                   />
-                  <div className="admin-grid two">
+                  <Div className="admin-grid two">
                     <Field
                       label="Name"
                       value={item.name}
                       onChange={(value) =>
-                        updateExecutive(index, { name: value })
+                        updateExecutive(index, { name: value }, teamList)
                       }
                     />
                     <Field
                       label="Designation"
                       value={item.designation}
                       onChange={(value) =>
-                        updateExecutive(index, { designation: value })
+                        updateExecutive(index, { designation: value }, teamList)
                       }
                     />
                     <Field
                       label="Student ID"
                       value={item.studentId}
                       onChange={(value) =>
-                        updateExecutive(index, { studentId: value })
+                        updateExecutive(index, { studentId: value }, teamList)
                       }
                     />
                     <Field
                       label="Batch"
                       value={item.batch}
                       onChange={(value) =>
-                        updateExecutive(index, { batch: value })
+                        updateExecutive(index, { batch: value }, teamList)
                       }
                     />
-                  </div>
+                  </Div>
                   <Field
                     label="Short quote (shown on hover)"
                     value={item.quote ?? ""}
                     placeholder="Leave empty to show the role's responsibility"
                     onChange={(value) =>
-                      updateExecutive(index, { quote: value })
+                      updateExecutive(index, { quote: value }, teamList)
                     }
                   />
-                </article>
+                </Article>
               ))}
             </div>
           </>

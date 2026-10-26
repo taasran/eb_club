@@ -1,4 +1,4 @@
-import type { SiteContent as Content } from "../contentClient"
+import { currentClubTeam, type SiteContent as Content } from "../contentClient"
 import { legacyMilestones } from "../data/club"
 
 export const defaultContent: Content = {
@@ -11,7 +11,7 @@ export const defaultContent: Content = {
     { title: "Economics in a changing world", type: "Proposed seminar", status: "Coming Soon" },
     { title: "Your first step into banking", type: "Proposed workshop", status: "Coming Soon" },
   ],
-  executives: Array.from({ length: 4 }, (_, index) => ({
+  ...currentClubTeam(Array.from({ length: 4 }, (_, index) => ({
     name: "Name to be announced",
     designation: [
       "President",
@@ -22,7 +22,7 @@ export const defaultContent: Content = {
     studentId: "",
     batch: "",
     image: "",
-  })),
+  }))),
   leadership: {},
   legacy: structuredClone(legacyMilestones),
   activityImages: {},
@@ -68,7 +68,7 @@ export const leadershipSections = [
   },
 ]
 
-export type Tab = "visitors" | "inbox" | "home" | "events" | "legacy" | "executives" | "leadership" | "archive" | "team" | "activity"
+export type Tab = "visitors" | "inbox" | "home" | "events" | "legacy" | "clubLeadership" | "executives" | "leadership" | "archive" | "team" | "activity"
 
 type AdminTab = {
   id: Tab
@@ -119,6 +119,12 @@ export const tabs: AdminTab[] = [
     label: "Our Legacy",
     hint: "Milestones timeline",
     icon: "flag",
+  },
+  {
+    id: "clubLeadership",
+    label: "Club Leadership",
+    hint: "Featured home page leaders",
+    icon: "award",
   },
   {
     id: "executives",

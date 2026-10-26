@@ -14,6 +14,11 @@ const optionalFields = (value: unknown, keys: string[]) =>
 const email = (value: unknown) => text(value) &&
   (value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value as string));
 const eventStatuses = ["Upcoming", "Registration Open", "Coming Soon", "Completed"];
+const executive = (item: unknown) => fields(item, ["name", "designation", "studentId", "batch"]) &&
+  optionalFields(item, ["quote"]) && record(item) && image(item.image) &&
+  optional(item.imageZoom, n => typeof n === "number" && n >= 1 && n <= 3) &&
+  optional(item.imageX, n => typeof n === "number" && n >= 0 && n <= 100) &&
+  optional(item.imageY, n => typeof n === "number" && n >= 0 && n <= 100);
 
 export function isOwner(user: { email?: string; email_confirmed_at?: string | null }, ownerEmail: string) {
   return Boolean(user.email_confirmed_at && user.email &&
@@ -33,11 +38,8 @@ export function validContent(value: unknown): boolean {
     list(value.events, item => fields(item, ["title", "type"]) &&
       optionalFields(item, ["date", "venue", "deadline"]) && record(item) &&
       optional(item.status, status => eventStatuses.includes(status as string))) &&
-    list(value.executives, item => fields(item, ["name", "designation", "studentId", "batch"]) &&
-      optionalFields(item, ["quote"]) && record(item) && image(item.image) &&
-      optional(item.imageZoom, n => typeof n === "number" && n >= 1 && n <= 3) &&
-      optional(item.imageX, n => typeof n === "number" && n >= 0 && n <= 100) &&
-      optional(item.imageY, n => typeof n === "number" && n >= 0 && n <= 100)) &&
+    list(value.executives, executive) &&
+    optional(value.clubLeadership, leaders => list(leaders, executive)) &&
     record(value.leadership) && Object.entries(value.leadership).every(([key, members]) =>
       ["former-presidents", "former-general-secretaries", "previous-executive-committees", "faculty-advisors"].includes(key) &&
       list(members, item => fields(item, ["name", "designation", "session"]) && record(item) && image(item.image))) &&
@@ -45,6 +47,7 @@ export function validContent(value: unknown): boolean {
       list(item.members, member => fields(member, ["name", "designation", "studentId", "batch"]))) &&
     optional(value.legacy, legacy => list(legacy, item =>
       fields(item, ["year", "title", "text"]) && record(item) && image(item.image) &&
+      optional(item.images, images => Array.isArray(images) && images.length <= 15 && images.every(image)) &&
       optional(item.highlights, highlights => list(highlights, text)))) &&
     optional(value.activityImages, images => record(images) && Object.keys(images).length <= 20 &&
       Object.entries(images).every(([key, url]) => /^[a-z0-9-]{1,40}$/i.test(key) && image(url))) &&

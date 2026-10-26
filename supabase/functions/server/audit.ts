@@ -44,6 +44,7 @@ export function describeContentChange(before: Json | null, after: Json): { area:
   for (const [key, title] of simple) if (!same(old[key], after[key])) details.push(`${title} changed`)
   details.push(...diffList("Events", (old.events as unknown[]) ?? [], (after.events as unknown[]) ?? [], ["title"]))
   details.push(...diffList("Executive Committee", (old.executives as unknown[]) ?? [], (after.executives as unknown[]) ?? [], ["name"]))
+  details.push(...diffList("Club Leadership", (old.clubLeadership as unknown[]) ?? [], (after.clubLeadership as unknown[]) ?? [], ["name"]))
   details.push(...diffList("Our Legacy", (old.legacy as unknown[]) ?? [], (after.legacy as unknown[]) ?? [], ["title", "year"]))
   details.push(...diffList("Committee archive", (old.archiveYears as unknown[]) ?? [], (after.archiveYears as unknown[]) ?? [], ["year"]))
   const oldLeaders = (old.leadership ?? {}) as Json

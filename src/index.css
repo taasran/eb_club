@@ -30,8 +30,6 @@
 }
 @media(max-width:760px){.economics-backdrop .econ-drift{opacity:.17}.economics-backdrop .econ-orbits{opacity:.2}.economics-backdrop svg{width:160%;max-width:none;position:relative;left:-30%}}
 
-.slider-play-toggle{border:1px solid var(--line);border-radius:30px;padding:8px 12px;background:var(--ivory);color:var(--forest);font-size:10px}
-.slider-play-toggle:disabled{opacity:.4;cursor:default}
 .slider-status-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);opacity:.4}
 .committee-carousel.is-running .slider-status-dot{background:var(--forest);opacity:1}
 .committee-carousel{position:relative}
@@ -49,8 +47,6 @@
 .committee-toolbar p{font-size:10px;color:var(--muted);margin-top:7px}
 .committee-controls{display:flex;align-items:center;gap:10px}
 .committee-controls>span{color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums;margin-right:6px}
-.previous-slide svg{rotate:180deg}
-.committee-controls button:disabled{opacity:.35;cursor:default;transform:none}
 .committee-slider{display:flex;gap:18px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:0;padding:8px 0 16px;scrollbar-width:thin;scrollbar-color:var(--gold) var(--sand)}
 .committee-slider .executive-card{flex:0 0 calc((100% - 36px)/3);scroll-snap-align:start;min-width:0}
 .committee-slider .executive-portrait{height:135px}

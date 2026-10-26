@@ -66,7 +66,7 @@ const contentJs = ts.transpileModule(
     },
   },
 ).outputText
-const { readContent, publishContent, contentSnapshot } = await import(
+const { readContent, publishContent, contentSnapshot, currentClubTeam, legacyPhotos, maxLegacyPhotos } = await import(
   write("contentClient", contentJs)
 )
 const fixture = {
@@ -94,6 +94,16 @@ const originalFetch = globalThis.fetch
 const json = (value, status = 200) =>
   new Response(JSON.stringify(value), { status })
 try {
+  const oldProfiles = Array.from({ length: 5 }, (_, index) => ({ name: `Person ${index + 1}` }))
+  const splitTeam = currentClubTeam(oldProfiles)
+  assert.deepEqual(splitTeam.clubLeadership, oldProfiles.slice(0, 3))
+  assert.deepEqual(splitTeam.executives, oldProfiles.slice(3))
+  assert.deepEqual([...splitTeam.clubLeadership, ...splitTeam.executives], oldProfiles)
+  assert.deepEqual(currentClubTeam(oldProfiles, []), { clubLeadership: [], executives: oldProfiles })
+  assert.deepEqual(currentClubTeam([], oldProfiles).clubLeadership, oldProfiles)
+  assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg" }), ["https://example.com/old.jpg"])
+  assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg", images: [] }), [])
+  assert.equal(legacyPhotos({ image: "", images: Array.from({ length: 16 }, (_, i) => `https://example.com/${i}.jpg`) }).length, maxLegacyPhotos)
   const {
     adminSignInUrl,
     passwordResetUrl,
@@ -432,8 +442,8 @@ try {
   }
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /Published Member 32/)
-  assert.match(html, /32 profiles/)
-  assert.match(html, /Profile 1 \/ 32/)
+  assert.match(html, /29 profiles/)
+  assert.match(html, /Profile 1 \/ 29/)
   globalThis.__clubContentFixture = {
     ...fixture,
     executives: Array.from({ length: 4 }, (_, index) => ({
@@ -443,15 +453,39 @@ try {
     })),
   }
   html = renderToStaticMarkup(createElement(App))
-  const completeRoster = html.split("CLUB EXECUTIVES")[1]
+  const completeRoster = html.split("CLUB EXECUTIVES")[1].split("join-banner")[0]
   assert(
     completeRoster,
     "The executive section must not disappear with only four profiles.",
   )
-  for (let index = 1; index <= 4; index++)
-    assert(completeRoster.includes(`Leader ${index}`))
-  assert.match(completeRoster, /ID: EB1/)
-  assert.match(completeRoster, /Pause auto-slide/)
+  for (let index = 1; index <= 3; index++)
+    assert(!completeRoster.includes(`Leader ${index}`))
+  assert.match(completeRoster, /Leader 4/)
+  assert.match(completeRoster, /ID: EB4/)
+  assert.doesNotMatch(completeRoster, /<button|Pause auto-slide|Resume auto-slide/)
+
+  globalThis.__clubContentFixture = {
+    ...fixture,
+    clubLeadership: Array.from({ length: 5 }, (_, index) => ({
+      ...fixture.executives[0], name: `Featured Leader ${index + 1}`,
+    })),
+    executives: [{ ...fixture.executives[0], name: "Independent Executive" }],
+    legacy: [{
+      year: "2025", title: "Programme gallery", text: "Our programme",
+      image: "https://example.com/cover.jpg",
+      images: Array.from({ length: 15 }, (_, index) => `https://example.com/programme-${index + 1}.jpg`),
+    }],
+  }
+  html = renderToStaticMarkup(createElement(App))
+  const leadersOnly = html.split("CLUB LEADERSHIP")[1].split("CLUB EXECUTIVES")[0]
+  assert.match(leadersOnly, /Featured Leader 5/)
+  assert.doesNotMatch(leadersOnly, /Independent Executive/)
+  const executivesOnly = html.split("CLUB EXECUTIVES")[1].split("join-banner")[0]
+  assert.match(executivesOnly, /Independent Executive/)
+  assert.doesNotMatch(executivesOnly, /Featured Leader/)
+  assert.match(html, /programme-15.jpg/)
+  assert.match(html, /transition-opacity/)
+  assert.match(html, /1 \/ 15/)
 
   globalThis.__clubContentFixture = { ...fixture, events: [], executives: [] }
   html = renderToStaticMarkup(createElement(App))
@@ -506,9 +540,9 @@ try {
     `
     export function useState(initial) {
       const index = ++globalThis.__carouselState;
-      const paused = (index === 2 && globalThis.__carouselPause === "hover") ||
-        (index === 3 && globalThis.__carouselPause === "focus") ||
-        (index === 4 && globalThis.__carouselPause === "motion");
+      const paused = (index === 1 && globalThis.__carouselPause === "hover") ||
+        (index === 2 && globalThis.__carouselPause === "focus") ||
+        (index === 3 && globalThis.__carouselPause === "motion");
       return [paused ? true : initial, () => {}];
     }
     export function useRef() { return {current: globalThis.__carouselTrack}; }
@@ -532,7 +566,7 @@ try {
     const cleanups = globalThis.__carouselEffects.map((effect) => effect())
     assert.equal(timers.length, pause ? 0 : 1)
     if (!pause) {
-      assert.equal(timers[0].delay, 4000)
+      assert.equal(timers[0].delay, 3000)
       timers[0].callback()
       assert.deepEqual(scrolls.at(-1), { left: 300, behavior: "smooth" })
       timers[0].callback()
@@ -549,6 +583,50 @@ try {
     cleanups.forEach((cleanup) => cleanup?.())
   }
   assert(cleared.length > 0)
+  const galleryReact = write(
+    "galleryReact",
+    `
+    export function useState(initial) {
+      const index = ++globalThis.__galleryState;
+      const value = index === 1 ? globalThis.__galleryIndex : index === 2 ? globalThis.__galleryPause === "hover" : index === 3 ? globalThis.__galleryPause === "focus" : globalThis.__galleryPause === "motion";
+      return [value, update => { if (index === 1) globalThis.__galleryIndex = typeof update === "function" ? update(globalThis.__galleryIndex) : update; }];
+    }
+    export function useRef() { return {current: globalThis.__carouselTrack}; }
+    export function useEffect(effect) { globalThis.__carouselEffects.push(effect); }
+  `,
+  )
+  const gallery = await import(
+    compile("components/LegacySlideshow", { react: galleryReact }),
+  )
+  const milestone = { year: "2025", title: "Gallery", text: "", image: "", images: ["https://example.com/a.jpg", "https://example.com/b.jpg"] }
+  for (const pause of ["", "closed", "hover", "focus", "motion", "single", "empty"]) {
+    globalThis.__galleryState = 0
+    globalThis.__galleryIndex = 0
+    globalThis.__galleryPause = pause
+    globalThis.__carouselEffects = []
+    timers.length = 0
+    gallery.default({
+      milestone: { ...milestone, images: pause === "single" ? milestone.images.slice(0, 1) : pause === "empty" ? [] : milestone.images },
+      active: pause !== "closed",
+    })
+    const cleanups = globalThis.__carouselEffects.map(effect => effect())
+    assert.equal(timers.length, pause ? 0 : 1)
+    if (!pause) {
+      assert.equal(timers[0].delay, 3000)
+      timers[0].callback()
+      assert.equal(globalThis.__galleryIndex, 1)
+      timers[0].callback()
+      assert.equal(globalThis.__galleryIndex, 0)
+      document.hidden = true
+      timers[0].callback()
+      document.hidden = false
+      offscreen = true
+      timers[0].callback()
+      offscreen = false
+      assert.equal(globalThis.__galleryIndex, 0)
+    }
+    cleanups.forEach(cleanup => cleanup?.())
+  }
   delete globalThis.getComputedStyle
   // Exercise update subscriptions without a browser or an authenticated account.
   globalThis.window = new EventTarget()
@@ -607,7 +685,7 @@ try {
   assert.equal(globalThis.__clubReads, 6)
   assert.equal(tick, undefined)
   console.log(
-    "PASS: registration/recovery, approval/download rendering, four-person executive roster, auto-slide/wrap/pause behavior, content refresh and cleanup.",
+    "PASS: registration/recovery, approval/download rendering, separate leadership/executives, 15-photo legacy gallery, 3-second auto-slide/wrap/pause behavior, content refresh and cleanup.",
   )
 } finally {
   globalThis.fetch = originalFetch
@@ -625,6 +703,9 @@ try {
     "__carouselPause",
     "__carouselState",
     "__carouselEffects",
+    "__galleryState",
+    "__galleryIndex",
+    "__galleryPause",
   ])
     delete globalThis[name]
   fs.rmSync(dir, { recursive: true, force: true })

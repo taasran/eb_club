@@ -33,8 +33,14 @@ for (const invalid of [
   null, {}, { ...content, campusImage: "javascript:alert(1)" },
   { ...content, events: [{}] }, { ...content, leadership: { bad: [] } },
   { ...content, executives: [{ name: "A" }] }, { ...content, heroTitle: "x".repeat(10001) },
+  { ...content, clubLeadership: [{ name: "A" }] },
+  { ...content, clubLeadership: "invalid" },
+  { ...content, clubLeadership: [{ name: "A", designation: "President", studentId: "", batch: "", image: "", imageZoom: 4 }] },
   { ...content, legacy: [{ year: "2020", title: "EB Day" }] },
   { ...content, legacy: [{ year: "2020", title: "EB Day", text: "", image: "javascript:alert(1)" }] },
+  { ...content, legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: Array(16).fill("https://example.com/a.jpg") }] },
+  { ...content, legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: ["javascript:alert(1)"] }] },
+  { ...content, legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: "invalid" }] },
   { ...content, activityImages: { "bad key!": "" } },
   { ...content, events: [{ title: "A", type: "B", status: "Cancelled" }] },
   { ...content, contactEmail: "not-an-email" },
@@ -56,5 +62,11 @@ assert.equal(validContent({
   ...content,
   leadership: { "former-presidents": [{ name: "A", designation: "President", session: "2025", image: "" }] },
 }), true);
+assert.equal(validContent({
+  ...content,
+  clubLeadership: [{ name: "A", designation: "President", studentId: "EB1", batch: "26", image: "", imageZoom: 1.5, imageX: 50, imageY: 20 }],
+  legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: Array(15).fill("https://example.com/a.jpg") }],
+}), true);
+assert.equal(validContent({ ...content, clubLeadership: [], legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: [] }] }), true);
 console.log("PASS: confirmed owner, non-owner and unconfirmed rejection, role permissions, content validation.");
 await import("./account_access.test.mjs");

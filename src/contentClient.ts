@@ -3,7 +3,8 @@ export type SiteContent = {
   heroDescription: string
   campusImage: string
   events: ClubEvent[]
-  executives: { name: string; designation: string; studentId: string; batch: string; image: string; quote?: string; imageZoom?: number; imageX?: number; imageY?: number }[]
+  executives: ExecutiveProfile[]
+  clubLeadership?: ExecutiveProfile[]
   leadership: Record<string, { name: string; designation: string; session: string; image: string }[]>
   archiveYears: { year: string; members: { name: string; designation: string; studentId: string; batch: string }[] }[]
   // Optional so content saved before these sections existed stays valid.
@@ -24,7 +25,25 @@ export type ClubEvent = {
   venue?: string
   deadline?: string
 }
-export type LegacyMilestone = { year: string; title: string; text: string; image: string; highlights?: string[] }
+export type ExecutiveProfile = { name: string; designation: string; studentId: string; batch: string; image: string; quote?: string; imageZoom?: number; imageX?: number; imageY?: number }
+export type LegacyMilestone = { year: string; title: string; text: string; image: string; images?: string[]; highlights?: string[] }
+
+export const slideshowInterval = 3000
+export const maxLegacyPhotos = 15
+
+export function legacyPhotos(milestone: LegacyMilestone): string[] {
+  return (milestone.images ?? (milestone.image ? [milestone.image] : []))
+    .filter(url => url.trim()).slice(0, maxLegacyPhotos)
+}
+
+// Older saves used the first three executive records for the leadership cards.
+// Split those records only until the two lists have been saved independently.
+export function currentClubTeam<T>(profiles: T[], clubLeadership?: T[]) {
+  return {
+    clubLeadership: clubLeadership ?? profiles.slice(0, 3),
+    executives: clubLeadership === undefined ? profiles.slice(3) : profiles,
+  }
+}
 
 type AdminRequest = (path: string, init?: RequestInit) => Promise<Response>
 

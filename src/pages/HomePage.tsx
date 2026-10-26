@@ -7,7 +7,8 @@ import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
 import type { ManagedExecutive } from "../components/ExecutiveCard"
 import ExecutiveShowcase from "../components/ExecutiveShowcase"
-import type { ClubEvent } from "../contentClient"
+import LegacySlideshow from "../components/LegacySlideshow"
+import { currentClubTeam, type ClubEvent } from "../contentClient"
 import {
   committee,
   aboutTopics,
@@ -36,6 +37,10 @@ export default function HomePage() {
   const displayedExecutives: ManagedExecutive[] =
     managedContent.executives ??
     committee.map(([designation]) => ({ designation }))
+  const team = currentClubTeam<ManagedExecutive>(
+    displayedExecutives,
+    managedContent.clubLeadership,
+  )
   const displayedEvents: ClubEvent[] = managedContent.events ?? [
     {
       title: "Economics in a changing world",
@@ -371,7 +376,9 @@ export default function HomePage() {
                 More than a club.
                 <small>A community that moves you forward.</small>
               </div>
-              <span className="floating-star">✳</span>
+              <span className="floating-icon club-mark ml-auto">
+                <img src="/images/iiuc-logo.png" alt="IIUC university crest" />
+              </span>
             </div>
             <div className="vertical-label">
               KNOWLEDGE · CONNECTION · IMPACT
@@ -695,20 +702,7 @@ export default function HomePage() {
                         inert={!open}
                       >
                         <div className="legacy-panel-inner">
-                          <div className="legacy-media">
-                            {milestone.image ? (
-                              <img
-                                src={milestone.image}
-                                alt={`${milestone.title}`}
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="legacy-media-placeholder">
-                                <img src="/images/club-logo.png" alt="" />
-                                <span>Photos coming soon</span>
-                              </div>
-                            )}
-                          </div>
+                          <LegacySlideshow milestone={milestone} active={open && !ambientPaused} />
                           <div className="legacy-details">
                             {milestone.text && <p>{milestone.text}</p>}
                             {highlights.length > 0 && (
@@ -822,7 +816,7 @@ export default function HomePage() {
               Meet the leadership of our club.
             </p>
           </div>
-          <ExecutiveShowcase profiles={displayedExecutives} />
+          <ExecutiveShowcase profiles={team.executives} leaders={team.clubLeadership} paused={ambientPaused} />
         </section>
 
         <section

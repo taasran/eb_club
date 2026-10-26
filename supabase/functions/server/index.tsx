@@ -6,6 +6,7 @@ import * as kv from "./kv_store.tsx";
 import { validContent, isOwner, canAccess, type Role } from "./validation.ts";
 import { describeContentChange, type ActivityEntry } from "./audit.ts";
 import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount, AccountAccessError } from "./account_access.ts";
+import { createFacebookFeed } from "./facebook.ts";
 
 const app = new Hono<{ Variables: { ownerEmail: string; role: Role; actorName: string } }>();
 const base = "/make-server-ad6cf477";
@@ -36,6 +37,19 @@ app.onError((error, c) => {
 app.notFound((c) => c.json({ error: "API route not found. Deploy the latest club backend." }, 404));
 
 app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v4" }));
+
+const getFacebookFeed = createFacebookFeed({
+  config: () => ({
+    pageId: Deno.env.get("FACEBOOK_PAGE_ID"),
+    token: Deno.env.get("FACEBOOK_PAGE_ACCESS_TOKEN"),
+  }),
+  cache: kv,
+});
+app.get(`${base}/public/facebook`, async (c) => {
+  c.header("Cache-Control", "no-store");
+  const { feed, status } = await getFacebookFeed();
+  return c.json(feed, status);
+});
 
 // Authentication and authorization are separate: signing up never grants admin access.
 app.use(`${base}/admin/*`, async (c, next) => {

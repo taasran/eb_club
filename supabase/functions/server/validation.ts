@@ -41,7 +41,7 @@ export function validContent(value: unknown): boolean {
     list(value.executives, executive) &&
     optional(value.clubLeadership, leaders => list(leaders, executive)) &&
     record(value.leadership) && Object.entries(value.leadership).every(([key, members]) =>
-      ["former-presidents", "former-general-secretaries", "previous-executive-committees", "faculty-advisors"].includes(key) &&
+      ["former-presidents", "former-general-secretaries", "former-assistant-general-secretaries", "previous-executive-committees", "faculty-advisors"].includes(key) &&
       list(members, item => fields(item, ["name", "designation", "session"]) && record(item) && image(item.image))) &&
     list(value.archiveYears, item => record(item) && text(item.year) &&
       list(item.members, member => fields(member, ["name", "designation", "studentId", "batch"]))) &&

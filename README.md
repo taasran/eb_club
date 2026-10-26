@@ -100,6 +100,17 @@ and strip source files from the old public design package. Previously downloaded
 copies, public GitHub source and old immutable deploy URLs are not revoked by this
 change; manage repository visibility and old deployments separately if needed.
 
+## Facebook Page updates
+
+The homepage reads up to six Page posts through the existing Supabase backend.
+Facebook credentials stay in Supabase runtime secrets, never in the React app.
+The server caches sanitized posts for five minutes and falls back to recently
+cached posts during temporary failures. Visible pages poll automatically; there
+is no background import or webhook. Non-Latin captions use English fallback copy.
+
+See [Facebook integration setup](docs/facebook-integration.md) for the two secret
+names, deployment steps, token renewal and troubleshooting.
+
 ## Executive showcase
 
 Club Leadership is a compact summary of the first four saved profiles. The Club

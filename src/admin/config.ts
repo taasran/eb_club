@@ -57,6 +57,11 @@ export const leadershipSections = [
     designation: "Former General Secretary",
   },
   {
+    slug: "former-assistant-general-secretaries",
+    title: "Former Assistant General Secretaries",
+    designation: "Former Assistant General Secretary",
+  },
+  {
     slug: "previous-executive-committees",
     title: "Previous Executive Committees",
     designation: "Executive Member",

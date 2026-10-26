@@ -68,6 +68,19 @@ export const archivePages = [
     ]),
   },
   {
+    slug: "former-assistant-general-secretaries",
+    title: "Former Assistant General Secretaries",
+    description:
+      "A record of the assistant general secretaries who supported the club’s operations, communication, and activities.",
+    profiles: createArchiveProfiles([
+      "Former Assistant General Secretary",
+      "Former Assistant General Secretary",
+      "Former Assistant General Secretary",
+      "Former Assistant General Secretary",
+      "Former Assistant General Secretary",
+    ]),
+  },
+  {
     slug: "previous-executive-committees",
     title: "Previous Executive Committees",
     description:

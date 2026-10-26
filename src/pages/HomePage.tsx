@@ -8,6 +8,7 @@ import Icon from "../components/Icon"
 import type { ManagedExecutive } from "../components/ExecutiveCard"
 import ExecutiveShowcase from "../components/ExecutiveShowcase"
 import LegacySlideshow from "../components/LegacySlideshow"
+import FacebookUpdates from "../components/FacebookUpdates"
 import { currentClubTeam, type ClubEvent } from "../contentClient"
 import {
   committee,
@@ -20,7 +21,7 @@ import {
   legacyMilestones,
 } from "../data/club"
 
-const { Div, P, Span, Small, H3, Button } = AdminControls
+const { Div, P, Span, Small, H3, Button, Strong } = AdminControls
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -742,6 +743,8 @@ export default function HomePage() {
           </section>
         )}
 
+        <FacebookUpdates />
+
         <section className="wrap section" id="events">
           <div className="section-heading">
             <div>
@@ -899,6 +902,7 @@ export default function HomePage() {
                 ["About us", "#about"],
                 ["Activities", "#activities"],
                 ["Our legacy", "#legacy"],
+                ["Latest updates", "#club-updates"],
                 ["Events", "#events"],
                 ["Leadership", "#executives"],
               ].map(([label, target]) => (
@@ -989,14 +993,11 @@ export default function HomePage() {
           <span>Built on knowledge. United by community.</span>
           <a href="#about">About the club ↗</a>
         </div>
-        <div className="developer-credit">
-          <div>
-            Owner &amp; Developed by <strong>Tasranur Rahaman</strong>
-          </div>
-          <div>
-            Batch 26th <span aria-hidden="true">·</span> EB253022
-          </div>
-        </div>
+        <Div className="developer-credit">
+          <Div>
+            Developed by <Strong>Tasranur Rahaman</Strong>
+          </Div>
+        </Div>
       </footer>
 
       {(joinOpen || selectedEvent) && (

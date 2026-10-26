@@ -285,6 +285,86 @@ try {
     /invalid response/,
   )
 
+  const facebookClient = await import(compile("facebookClient"))
+  const facebookFixture = {
+    posts: [{
+      id: "451695514683833_123",
+      message: "Our latest campus story.",
+      createdAt: "2026-10-20T10:00:00Z",
+      url: "https://www.facebook.com/451695514683833/posts/123",
+      image: "https://scontent.example.fbcdn.net/story.jpg",
+      mediaType: "image",
+    }],
+    pageUrl: facebookClient.facebookPageUrl,
+    updatedAt: "2026-10-20T10:00:00Z",
+    stale: false,
+  }
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, "https://test.invalid/public/facebook")
+    assert.equal(options.headers.Authorization, "Bearer public-key")
+    assert.equal(options.cache, "no-store")
+    return json(facebookFixture)
+  }
+  assert.deepEqual(await facebookClient.readFacebookFeed("https://test.invalid", "public-key"), facebookFixture)
+  const legacyFacebookFixture = {
+    ...facebookFixture,
+    posts: facebookFixture.posts.map(({ mediaType, ...post }) => post),
+  }
+  globalThis.fetch = async () => json(legacyFacebookFixture)
+  assert.deepEqual(
+    await facebookClient.readFacebookFeed("https://test.invalid", "public-key"),
+    facebookFixture,
+  )
+  globalThis.fetch = async () => json({ error: "upstream-private-details" }, 503)
+  await assert.rejects(facebookClient.readFacebookFeed("", ""), /temporarily unavailable/)
+  for (const changes of [
+    { posts: null },
+    { updatedAt: "invalid" },
+    { pageUrl: "javascript:alert(1)" },
+    { posts: [{ ...facebookFixture.posts[0], url: "https://attacker.invalid" }] },
+    { posts: [{ ...facebookFixture.posts[0], image: "https://attacker.invalid" }] },
+    { posts: [{ ...facebookFixture.posts[0], url: "https://www.facebook.com/post?access_token=private" }] },
+    { posts: [{ ...facebookFixture.posts[0], mediaType: "audio" }] },
+  ]) {
+    globalThis.fetch = async () => json({ ...facebookFixture, ...changes })
+    await assert.rejects(facebookClient.readFacebookFeed("", ""), /could not be loaded/)
+  }
+  const facebookHook = write("facebookHook", "export default function useFacebookFeed() { return globalThis.__facebookFixture; }")
+  const { default: FacebookUpdates } = await import(compile("components/FacebookUpdates", {
+    "src/useFacebookFeed.ts": facebookHook,
+  }))
+  globalThis.__facebookFixture = { feed: facebookFixture, loading: false, failed: false }
+  let facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
+  assert.match(facebookHtml, /Our latest campus story/)
+  assert.match(facebookHtml, /Read on Facebook/)
+  assert.match(facebookHtml, /20 Oct 2026/)
+  assert.match(facebookHtml, /rel="noopener noreferrer"/)
+  assert.match(facebookHtml, /loading="lazy"/)
+  assert.doesNotMatch(facebookHtml, /access_token|graph\.facebook\.com/)
+  globalThis.__facebookFixture = {
+    feed: {
+      ...facebookFixture,
+      posts: [{ ...facebookFixture.posts[0], mediaType: "video" }],
+    },
+    loading: false,
+    failed: false,
+  }
+  facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
+  assert.match(facebookHtml, /facebook\.com\/plugins\/video\.php/)
+  assert.match(facebookHtml, /allowFullScreen/)
+  globalThis.__facebookFixture = { feed: { ...facebookFixture, stale: true }, loading: false, failed: false }
+  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /last available updates/)
+  globalThis.__facebookFixture = { feed: { ...facebookFixture, posts: [] }, loading: false, failed: false }
+  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /no recent posts/)
+  globalThis.__facebookFixture = { feed: null, loading: false, failed: true }
+  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /temporarily unavailable/)
+  globalThis.__facebookFixture = { feed: null, loading: true, failed: false }
+  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /Loading the latest club updates/)
+  globalThis.__facebookFixture = { feed: { ...facebookFixture, posts: [{ ...facebookFixture.posts[0], message: "", image: null }] }, loading: false, failed: false }
+  facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
+  assert.match(facebookHtml, /Another moment from our club/)
+  assert.doesNotMatch(facebookHtml, /src="null"/)
+
   const reactUrl = pathToFileURL(require.resolve("react")).href
   const empty = write(
     "empty",
@@ -497,6 +577,9 @@ try {
   globalThis.__clubTestRoute = "/leadership/former-presidents"
   html = renderToStaticMarkup(createElement(App))
   assert.doesNotMatch(html, /Name to be announced/)
+  globalThis.__clubTestRoute = "/leadership/former-assistant-general-secretaries"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /Former Assistant General Secretaries/)
   globalThis.__clubTestRoute = "/leadership/committee-wise-archive"
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /No committee sessions are currently published/)
@@ -684,8 +767,67 @@ try {
   window.dispatchEvent(new Event("focus"))
   assert.equal(globalThis.__clubReads, 6)
   assert.equal(tick, undefined)
+  window.setTimeout = globalThis.setTimeout
+  window.clearTimeout = globalThis.clearTimeout
+  document.hidden = false
+  let facebookReads = 0
+  let facebookRequest
+  let facebookCleanup
+  let facebookState
+  let rejectFacebook = false
+  const feedReact = write("feedReact", `
+    export function useState(initial) {
+      globalThis.__facebookSetState(initial);
+      return [initial, globalThis.__facebookSetState];
+    }
+    export function useEffect(effect) { globalThis.__facebookEffect(effect); }
+  `)
+  globalThis.__facebookSetState = update => { facebookState = typeof update === "function" ? update(facebookState) : update }
+  globalThis.__facebookEffect = effect => { facebookCleanup = effect() }
+  const feedApi = write("feedApi", `
+    export const facebookRefreshInterval = 300000;
+    export async function readFacebookFeed(...args) { return globalThis.__facebookRead(...args); }
+  `)
+  globalThis.__facebookRead = async (_url, _key, signal) => {
+    facebookReads++
+    facebookRequest = signal
+    if (rejectFacebook) throw new Error("offline")
+    return facebookFixture
+  }
+  const { default: useFacebookFeed } = await import(compile("useFacebookFeed", {
+    react: feedReact,
+    "src/facebookClient.ts": feedApi,
+    "src/supabase.ts": supabase,
+  }))
+  useFacebookFeed()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(facebookReads, 1)
+  assert.deepEqual(facebookState.feed, facebookFixture)
+  window.dispatchEvent(new Event("focus"))
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(facebookReads, 2)
+  document.hidden = true
+  tick()
+  assert.equal(facebookReads, 2)
+  document.hidden = false
+  rejectFacebook = true
+  tick()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(facebookState.failed, true)
+  assert.deepEqual(facebookState.feed, facebookFixture)
+  facebookCleanup()
+  const lastReads = facebookReads
+  window.dispatchEvent(new Event("focus"))
+  assert.equal(facebookReads, lastReads)
+  assert.equal(tick, undefined)
+  assert(facebookRequest instanceof AbortSignal)
+  assert.equal(
+    (fs.readFileSync("index.html", "utf8").match(/name="google-site-verification"/g) ?? []).length,
+    2,
+    "Preserve both Google Search Console verification tags.",
+  )
   console.log(
-    "PASS: registration/recovery, approval/download rendering, separate leadership/executives, 15-photo legacy gallery, 3-second auto-slide/wrap/pause behavior, content refresh and cleanup.",
+    "PASS: registration/recovery, approval/download rendering, separate leadership/executives, legacy gallery, content refresh, Facebook API/render/fallback/polling/cleanup, and both Google verification tags.",
   )
 } finally {
   globalThis.fetch = originalFetch
@@ -706,6 +848,10 @@ try {
     "__galleryState",
     "__galleryIndex",
     "__galleryPause",
+    "__facebookFixture",
+    "__facebookSetState",
+    "__facebookEffect",
+    "__facebookRead",
   ])
     delete globalThis[name]
   fs.rmSync(dir, { recursive: true, force: true })

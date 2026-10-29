@@ -80,3 +80,4 @@ console.log("PASS: confirmed owner, non-owner and unconfirmed rejection, role pe
 await import("./account_access.test.mjs");
 await import("./facebook.test.mjs");
 await import("./facebook-diagnostics.test.mjs");
+await import("./facebook-shared.test.mjs");

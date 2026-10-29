@@ -39,6 +39,16 @@ Check the homepage section and a post's **Read on Facebook** link as well.
 ## Refresh, language and failures
 
 - Up to six latest posts are fetched with Graph API `v26.0`.
+- The main request uses only `id,message,created_time,permalink_url,full_picture`;
+  do not add the deprecated top-level `type` field.
+- Non-video posts without an image get a separate, optional attachment lookup
+  for a shared photo or album preview and an English attachment description.
+  This lookup has a three-second timeout and runs at most once per missing-image
+  post per feed refresh. Permission errors, deprecated fields, malformed data
+  or timeouts leave the basic post intact; they never make the feed return 503.
+  Only allowlisted Facebook CDN image URLs and sanitized captions are cached.
+  If Facebook does not grant access to a shared post's media, its Facebook link
+  remains available; this does not bypass the original Page's access controls.
 - Sanitized results are cached in the existing KV table for five minutes.
   Graph failures have a one-minute retry cooldown and preserve successful
   results for up to 24 hours, with an explicit stale notice.

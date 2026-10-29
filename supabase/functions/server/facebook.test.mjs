@@ -89,7 +89,7 @@ assert.equal(new URL(fresh.requests[0].url).pathname, `/v26.0/${pageId}/posts`)
 assert.equal(new URL(fresh.requests[0].url).searchParams.get("limit"), "6")
 assert.equal(
   new URL(fresh.requests[0].url).searchParams.get("fields"),
-  "id,message,created_time,permalink_url,full_picture,type,attachments{media_type,subattachments{media_type}}",
+  "id,message,created_time,permalink_url,full_picture",
 )
 assert(!fresh.requests[0].url.includes(token))
 assert(!JSON.stringify(parallel).includes(token))
@@ -218,37 +218,15 @@ video.upstream({
 })
 assert.equal((await video.read()).feed.posts[0].mediaType, "video")
 
-let fallbackCalls = 0
-const fallbackFeed = createFacebookFeed({
-  config: () => ({ pageId, token }),
-  cache: {
-    get: async () => null,
-    set: async () => {},
-  },
-  now: () => initialTime,
-  fetch: async (url) => {
-    fallbackCalls += 1
-    if (fallbackCalls === 1) {
-      assert.match(new URL(url).searchParams.get("fields"), /attachments/)
-      return json({ error: { code: 100 } }, 400)
-    }
-    assert.equal(
-      new URL(url).searchParams.get("fields"),
-      "id,message,created_time,permalink_url,full_picture",
-    )
-    return json({
-      data: [
-        post(1, {
-          permalink_url: "https://www.facebook.com/reel/123456789/",
-        }),
-      ],
-    })
-  },
+const permalinkVideo = fixture()
+permalinkVideo.upstream({
+  data: [
+    post(1, {
+      permalink_url: "https://www.facebook.com/reel/123456789/",
+    }),
+  ],
 })
-const fallbackResult = await fallbackFeed()
-assert.equal(fallbackResult.status, 200)
-assert.equal(fallbackCalls, 2)
-assert.equal(fallbackResult.feed.posts[0].mediaType, "video")
+assert.equal((await permalinkVideo.read()).feed.posts[0].mediaType, "video")
 
 const redacted = fixture()
 redacted.upstream({

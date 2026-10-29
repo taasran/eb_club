@@ -95,6 +95,31 @@ function englishCaption(value: unknown, token: string): string {
   return text.length > 320 ? `${text.slice(0, 317).trimEnd()}...` : text
 }
 
+function attachmentPreview(value: unknown, token: string) {
+  const pending: unknown[] = [value]
+  let image: string | null = null
+  let message = ""
+  let inspected = 0
+  while (pending.length && inspected < 50) {
+    const current = pending.shift()
+    inspected += 1
+    if (!current || typeof current !== "object") continue
+    const attachment = current as Record<string, unknown>
+    if (attachment.media && typeof attachment.media === "object") {
+      const media = attachment.media as Record<string, unknown>
+      if (media.image && typeof media.image === "object") {
+        image ??= safeUrl((media.image as Record<string, unknown>).src, true)
+      }
+    }
+    message ||= englishCaption(attachment.description, token)
+    if (Array.isArray(attachment.data)) {
+      pending.push(...attachment.data.slice(0, 50))
+    }
+    pending.push(attachment.attachments, attachment.subattachments)
+  }
+  return { image, message }
+}
+
 function isVideoMediaType(value: unknown): boolean {
   return (
     typeof value === "string" &&
@@ -147,17 +172,19 @@ function normalizePosts(
     )
       continue
     seen.add(post.id)
+    const preview = attachmentPreview(post.attachments, token)
+    const image = safeUrl(post.full_picture, true) ?? preview.image
     posts.push({
       id: post.id,
-      message: englishCaption(post.message, token),
+      message: englishCaption(post.message, token) || preview.message,
       createdAt: new Date(post.created_time).toISOString(),
       url: safeUrl(post.permalink_url) ?? `https://www.facebook.com/${post.id}`,
-      image: safeUrl(post.full_picture, true),
+      image,
       mediaType: isVideoMediaType(post.type) ||
         hasVideoMedia(post.attachments) ||
         isVideoPermalink(post.permalink_url)
         ? "video"
-        : safeUrl(post.full_picture, true)
+        : image
           ? "image"
           : "text",
     })
@@ -171,6 +198,36 @@ function normalizePosts(
 export function createFacebookFeed(dependencies: Dependencies) {
   const request = dependencies.fetch ?? globalThis.fetch
   const now = dependencies.now ?? Date.now
+  const enrichSharedPost = async (post: FacebookPost, token: string) => {
+    if (post.image || post.mediaType === "video") return post
+    try {
+      // Shared albums may omit full_picture. Read their preview separately so
+      // attachment permissions/deprecations cannot break the basic feed.
+      const url = new URL(`https://graph.facebook.com/v26.0/${post.id}/attachments`)
+      url.searchParams.set(
+        "fields",
+        "media,description,subattachments{media,description}",
+      )
+      const response = await request(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(3000),
+        redirect: "error",
+      })
+      if (!response.ok) return post
+      const body = await response.json()
+      if (!body || body.error || !Array.isArray(body.data)) return post
+      const preview = attachmentPreview(body, token)
+      return {
+        ...post,
+        image: preview.image,
+        message: post.message || preview.message,
+        mediaType: preview.image ? "image" as const : post.mediaType,
+      }
+    } catch {
+      // No raw Graph response, target URL or paging URL is stored or forwarded.
+      return post
+    }
+  }
   const reportFailure = (failure: FacebookFeedFailure) => {
     try {
       if (dependencies.reportFailure) {
@@ -255,19 +312,9 @@ export function createFacebookFeed(dependencies: Dependencies) {
           stage = "response"
           return { response, body: await response.json() }
         }
-        const expandedFields =
-          "id,message,created_time,permalink_url,full_picture,type,attachments{media_type,subattachments{media_type}}"
         const basicFields =
           "id,message,created_time,permalink_url,full_picture"
-        let { response, body } = await fetchPosts(expandedFields)
-        // Some Page/token combinations reject nested attachment fields. A
-        // field error must not hide the otherwise usable Facebook feed.
-        if (
-          body?.error?.code === 100 &&
-          (!response.ok || !Array.isArray(body.data))
-        ) {
-          ;({ response, body } = await fetchPosts(basicFields))
-        }
+        const { response, body } = await fetchPosts(basicFields)
         graphCode = Number.isSafeInteger(body?.error?.code)
           ? body.error.code
           : undefined
@@ -281,10 +328,13 @@ export function createFacebookFeed(dependencies: Dependencies) {
         const posts = normalizePosts(body.data, pageId, token)
         if (body.data.length && !posts.length)
           throw new Error("Invalid Facebook posts.")
+        const enrichedPosts = await Promise.all(
+          posts.map((post) => enrichSharedPost(post, token)),
+        )
         next = {
           feed: {
             ...empty,
-            posts,
+            posts: enrichedPosts,
             updatedAt: new Date(timestamp).toISOString(),
           },
           retryAt: timestamp + refreshInterval,

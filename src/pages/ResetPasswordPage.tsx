@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import AdminControls from "../AdminControls"
 import { supabase } from "../supabase"
 import PasswordField from "../admin/PasswordField"
+import ThemeToggle from "../components/ThemeToggle"
 import { saveResetPassword } from "../admin/onboarding"
 
 const { Main, Section, P, H2, Form, Button, Div, Link } = AdminControls
@@ -40,6 +41,7 @@ export default function ResetPasswordPage() {
   return (
     <Main className="admin-page">
       <Section className="admin-login">
+        <ThemeToggle className="recovery-theme" />
         <P className="admin-eyebrow">ACCOUNT RECOVERY</P>
         <H2>Set a new password.</H2>
         <P className="admin-muted">

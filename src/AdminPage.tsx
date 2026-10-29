@@ -6,6 +6,14 @@ import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
 import ProjectDownload from "./admin/ProjectDownload"
 import AdminControls from "./AdminControls"
+import ThemeToggle from "./components/ThemeToggle"
+import {
+  maxTeamProfiles,
+  moveTeamProfile,
+  otherTeamSection,
+  teamSectionLabels,
+  type TeamSection,
+} from "./admin/teamTransfer"
 import {
   readContent,
   publishContent,
@@ -132,6 +140,12 @@ const iconPaths: Record<string, ReactNode> = {
   ),
   up: <path d="m6 15 6-6 6 6" />,
   down: <path d="m6 9 6 6 6-6" />,
+  transfer: (
+    <>
+      <path d="M4 7h16m-4-4 4 4-4 4" />
+      <path d="M20 17H4m4-4-4 4 4 4" />
+    </>
+  ),
   link: (
     <>
       <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
@@ -416,6 +430,7 @@ export default function AdminPage() {
   )
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [pendingUploads, setPendingUploads] = useState(0)
   const [tab, setTab] = useState<Tab>("visitors")
   const [visitDays, setVisitDays] = useState<VisitDay[]>([])
   const [visitRange, setVisitRange] = useState(30)
@@ -615,10 +630,11 @@ export default function AdminPage() {
       return
     }
     notify("Uploading image…")
-    const { data } = await supabase.auth.getSession()
-    const form = new FormData()
-    form.append("file", file)
+    setPendingUploads((count) => count + 1)
     try {
+      const { data } = await supabase.auth.getSession()
+      const form = new FormData()
+      form.append("file", file)
       const response = await fetch(`${serverUrl}/admin/upload`, {
         method: "POST",
         headers: {
@@ -635,6 +651,8 @@ export default function AdminPage() {
       notify("Image uploaded. Save changes to publish it.", "success")
     } catch (error) {
       notify(`Image upload failed: ${error}`, "error")
+    } finally {
+      setPendingUploads((count) => count - 1)
     }
   }
 
@@ -672,6 +690,25 @@ export default function AdminPage() {
   type Person = Content["leadership"][string][number]
   type Executive = Content["executives"][number]
   type Member = Content["archiveYears"][number]["members"][number]
+  const transferExecutive = (profile: Executive, source: TeamSection) => {
+    if (busy || pendingUploads > 0) return
+    const destination = otherTeamSection(source)
+    if ((content[destination] ?? []).length >= maxTeamProfiles) {
+      notify(
+        `${teamSectionLabels[destination]} already has ${maxTeamProfiles} profiles. Remove a profile before moving another one.`,
+        "error",
+      )
+      return
+    }
+    const name = profile.name.trim() || "Unnamed profile"
+    if (!window.confirm(
+      `Move "${name}" from ${teamSectionLabels[source]} to ${teamSectionLabels[destination]}? All profile details will be kept. Click Save changes to publish the move.`,
+    )) return
+    setContent((current) => moveTeamProfile(current, source, profile))
+    notify(
+      `${name} moved to ${teamSectionLabels[destination]} in your draft. Click Save changes to publish, or Discard to undo unsaved changes.`,
+    )
+  }
   const updateExecutive = (index: number, patch: Partial<Executive>, list: "executives" | "clubLeadership" = "executives") =>
     setContent((current) => ({
       ...current,
@@ -793,6 +830,9 @@ export default function AdminPage() {
   const teamList = tab === "clubLeadership" ? "clubLeadership" : "executives"
   const teamProfiles = content[teamList] ?? []
   const editingLeaders = teamList === "clubLeadership"
+  const transferDestination = otherTeamSection(teamList)
+  const transferDestinationFull =
+    (content[transferDestination] ?? []).length >= maxTeamProfiles
 
   return (
     <main className="admin-shell admin-app">
@@ -858,6 +898,7 @@ export default function AdminPage() {
           <span>Admin</span>
           <span>/</span>
           <strong>{activeTab.label}</strong>
+          <ThemeToggle />
         </div>
 
         <ProjectDownload />
@@ -1595,6 +1636,17 @@ export default function AdminPage() {
                 </Button>
               }
             />
+            <P className="admin-muted">
+              Move a profile between Club Leadership and Club Executives without
+              re-entering its details. Moved profiles are added to the end of the
+              destination list. Click Save changes to publish.
+            </P>
+            {transferDestinationFull && (
+              <P className="admin-status" role="status">
+                {teamSectionLabels[transferDestination]} already contains {maxTeamProfiles} profiles.
+                Remove a profile there before moving another one.
+              </P>
+            )}
             <div className="admin-people">
               {teamProfiles.map((item, index) => (
                 <Article className="admin-card admin-person" key={`${teamList}-${index}`}>
@@ -1672,6 +1724,23 @@ export default function AdminPage() {
                       updateExecutive(index, { quote: value }, teamList)
                     }
                   />
+                  <Div className="admin-header-actions">
+                    <Button
+                      type="button"
+                      className="admin-btn ghost"
+                      disabled={
+                        busy || pendingUploads > 0 || transferDestinationFull
+                      }
+                      title={pendingUploads > 0
+                        ? "Wait for image uploads to finish before moving a profile."
+                        : undefined}
+                      onClick={() => transferExecutive(item, teamList)}
+                      aria-label={`Move ${item.name || "unnamed profile"} to ${teamSectionLabels[transferDestination]}`}
+                    >
+                      <AdminIcon name="transfer" />
+                      {editingLeaders ? "Move to Club Executives" : "Move to Leadership"}
+                    </Button>
+                  </Div>
                 </Article>
               ))}
             </div>
@@ -1964,7 +2033,7 @@ export default function AdminPage() {
         )}
 
         <div className={dirty ? "admin-savebar dirty" : "admin-savebar"}>
-          <div className="admin-savebar-status">
+          <Div className="admin-savebar-status" role="status" aria-atomic="true">
             <i />
             {status ? (
               <span className={`tone-${statusTone}`}>
@@ -1978,7 +2047,7 @@ export default function AdminPage() {
                 {dirty ? "You have unsaved changes" : "Everything is saved"}
               </span>
             )}
-          </div>
+          </Div>
           <div className="admin-savebar-actions">
             {dirty && (
               <button

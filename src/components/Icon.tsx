@@ -1,6 +1,21 @@
 import type { ReactNode } from "react"
 
 const extraIcons: Record<string, ReactNode> = {
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20.8 13.2A8.9 8.9 0 0 1 10.8 3.1 9 9 0 1 0 20.8 13.2Z" />,
+  shield: (
+    <>
+      <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" />
+      <path d="m8.5 12 2.5 2.5 4.5-5" />
+    </>
+  ),
+  pause: <path d="M8 5v14M16 5v14" />,
+  play: <path d="m8 4 12 8-12 8V4Z" />,
   target: (
     <>
       <circle cx="12" cy="12" r="9" />

@@ -5,6 +5,7 @@ import EconomicsLoader from "../EconomicsLoader"
 import useSiteContent from "../useSiteContent"
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
+import ThemeToggle from "../components/ThemeToggle"
 import type { ManagedExecutive } from "../components/ExecutiveCard"
 import ExecutiveShowcase from "../components/ExecutiveShowcase"
 import LegacySlideshow from "../components/LegacySlideshow"
@@ -176,6 +177,7 @@ export default function HomePage() {
           International Islamic University Chittagong{" "}
           <span className="tiny-arrow">↗</span>
         </span>
+        <ThemeToggle className="theme-toggle-on-brand" />
       </div>
       <header className="header">
         <a

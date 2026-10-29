@@ -1,6 +1,7 @@
 import AdminControls from "../AdminControls"
+import Icon from "./Icon"
 
-const { Article } = AdminControls
+const { Article, Div, Img, Span, P, H3, Details, Summary } = AdminControls
 
 export type ManagedExecutive = {
   name?: string
@@ -68,38 +69,70 @@ export default function ExecutiveCard({
   return (
     <Article
       className={
-        leadership ? "executive-card leadership-card" : "executive-card"
+        leadership
+          ? "executive-card leadership-card profile-card"
+          : "executive-card profile-card"
       }
       aria-label={`${role}, profile ${index + 1} of ${total}`}
-      tabIndex={leadership ? 0 : undefined}
     >
-      <div className="executive-portrait">
-        {person?.image ? (
-          <img
-            className="executive-photo"
-            src={person.image}
-            alt=""
-            style={{
-              objectPosition: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
-              transformOrigin: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
-              transform: person.imageZoom && person.imageZoom > 1 ? `scale(${person.imageZoom})` : undefined,
-            }}
-          />
-        ) : (
-          <IllustratedAvatar />
-        )}
-        <div className="executive-reveal">
-          <span className="executive-reveal-label">
-            {quote ? "In their words" : "Responsibility"}
-          </span>
-          <p>{quote ? `“${quote}”` : description}</p>
-        </div>
-      </div>
-      <div className="executive-info">
-        <div className="eyebrow">{role}</div>
-        <h3>{name}</h3>
-        <p>{details || description}</p>
-      </div>
+      <Div className="profile-portrait-stage">
+        <Div className="executive-portrait">
+          {person?.image ? (
+            <Img
+              className="executive-photo"
+              src={person.image}
+              alt=""
+              style={{
+                objectPosition: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
+                transformOrigin: `${person.imageX ?? 50}% ${person.imageY ?? 20}%`,
+                transform:
+                  person.imageZoom && person.imageZoom > 1
+                    ? `scale(${person.imageZoom})`
+                    : undefined,
+              }}
+            />
+          ) : (
+            <IllustratedAvatar />
+          )}
+        </Div>
+        <Span className="profile-club-seal" aria-hidden="true">
+          <Img src="/images/club-logo.png" alt="" />
+        </Span>
+      </Div>
+      <Div className="executive-info">
+        <Div className="profile-registry">
+          <Span>
+            {leadership
+              ? "Leadership Economics & Banking Club"
+              : "Executives Economics & Banking Club"}
+          </Span>
+        </Div>
+        <H3>{name}</H3>
+        <P className="profile-role">{role}</P>
+        <Details className="profile-disclosure">
+          <Summary
+            className="profile-details-toggle"
+            aria-label={`View profile details for ${name}${
+              details ? `, ${details}` : ""
+            }`}
+          >
+            <Span className="executive-details">{details || "IIUC"}</Span>
+            <Span className="profile-details-pill">
+              View profile <Icon name="chevron" />
+            </Span>
+          </Summary>
+          <Div
+            className={
+              quote ? "executive-reveal profile-quote" : "executive-reveal"
+            }
+          >
+            <Span className="executive-reveal-label">
+              {quote ? "In their words" : "Responsibility"}
+            </Span>
+            <P>{quote ? `“${quote}”` : description}</P>
+          </Div>
+        </Details>
+      </Div>
     </Article>
   )
 }

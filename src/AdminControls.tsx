@@ -19,6 +19,8 @@ const AdminControls = {
   H1: "h1",
   H2: "h2",
   Em: "em",
+  Details: "details",
+  Summary: "summary",
 } as const
 
 export default AdminControls

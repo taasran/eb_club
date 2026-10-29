@@ -10,6 +10,17 @@
     <link rel="canonical" href="https://ebclubiiuc.pages.dev/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#163d32" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (() => {
+        let theme;
+        try { theme = window.localStorage.getItem("eb-club-theme"); } catch {}
+        if (theme !== "light" && theme !== "dark") {
+          theme = window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <meta name="application-name" content="Economics &amp; Banking Club, IIUC" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ebclubiiuc.pages.dev/" />

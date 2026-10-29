@@ -38,6 +38,8 @@ For a separate local checkout, `pnpm dev` starts Vite.
 | `src/lib/analytics.ts` | Approximate browser-local visit tracking |
 | `src/supabase.ts` | Browser Supabase client and shared API address |
 | `src/index.css` | Existing design tokens, global fonts and site styles |
+| `src/theme.ts`, `src/theme.css` | Browser-local theme preference, semantic night palette and themed surfaces |
+| `src/admin/auth.css`, `src/admin/AuthAtmosphere.tsx` | Responsive animated content-studio entrance |
 | `supabase/functions/server/` | API, authorization and validation |
 | `public/` | Static assets, sitemap, robots, Netlify headers and redirects |
 | `.github/workflows/deploy.yml` | Checks and production deployment on a `main` push |
@@ -63,6 +65,7 @@ placeholder records. An ordinary content edit does **not** require a code deploy
 | --- | --- |
 | `pnpm run test` | Content publication/render/refresh and authorization regressions |
 | `pnpm run typecheck` | Frontend TypeScript check |
+| `pnpm run test:theme` | Theme defaults, persistence, cross-tab sync and storage-failure regressions |
 | `pnpm run check` | Both tests and typechecking; used by CI |
 | `pnpm run build` | Production frontend in `dist/` |
 | `pnpm run source:export` | Refresh the preview's downloadable source snapshot without deploying |
@@ -113,12 +116,55 @@ names, deployment steps, token renewal and troubleshooting.
 
 ## Executive showcase
 
+### Moving profiles between sections
+
+In the admin editor, every current team profile has **Move to Leadership** or
+**Move to Club Executives**. Confirming removes the selected profile from its
+source and appends it to the destination draft, preserving its name, designation,
+ID, batch, photo, quote and crop/zoom settings. It does not create a copy or
+change the designation automatically. Moves wait until image uploads finish.
+
+Click **Save changes** to publish both lists through the existing verified
+content-save flow. **Discard** restores all unsaved edits, including moves.
+The destination's 300-profile validation limit is enforced before moving.
+No backend schema change or special account privilege is added.
+
 Club Leadership is a compact summary of the first four saved profiles. The Club
 Executives section below it shows the complete committee, including those leaders
 with their IDs/batches. It remains visible when only four or fewer profiles exist.
 The native smooth-scroll carousel advances every four seconds when visible,
 pauses on hover/focus and supports Pause/Resume, keyboard arrows and touch. It
 does not auto-animate for reduced-motion users or when every card fits on screen.
+
+Current and archived members share the compact, rounded portrait-card design in
+`src/components/profile-cards.css`: edge-to-edge photos with a frosted caption
+panel, translucent ivory in day mode and smoke glass at night.
+Executive cards use “Executives Economics & Banking Club”; leadership and archive
+cards keep their own descriptive labels. Decorative card numbers are omitted.
+Names appear above designations. Existing photo crop/zoom settings, IDs, batches,
+sessions, quotes and responsibilities remain intact. The keyboard-accessible
+**View profile** disclosure reveals the quote/responsibility; longer content
+scrolls within the glass panel without resizing the carousel. It is not a fake
+Follow action and does not display invented follower counts.
+The club-crest medallion and subtle pointer-only lift finish the cards.
+Reduced-motion preferences disable movement.
+
+## Day and night appearance
+
+Public-page top bars, the login toolbar, admin dashboard, password recovery and
+not-found page share the keyboard-accessible Day/Night switch. On a first visit,
+the theme follows the device preference. A manual choice is stored only in this
+browser under `eb-club-theme`, persists across reloads and synchronizes between
+tabs. No account or server preference is changed. If browser storage is blocked,
+switching still works for the current tab. The initial HTML applies the theme
+before rendering to avoid a light flash.
+
+`src/theme.css` extends the existing club tokens with a deep-emerald night
+palette. Keep brand-panel/photograph text separate from surface text, and use
+semantic tokens instead of adding isolated dark backgrounds. The login artwork
+is decorative, not live statistics. Its Motion control pauses the ambient
+animation, and `prefers-reduced-motion` disables it automatically. Sign-in,
+account review and password recovery use the unchanged Supabase flows.
 
 ## Conventions for the next developer
 

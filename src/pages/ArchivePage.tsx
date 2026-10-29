@@ -3,13 +3,14 @@ import EconomicsBackdrop from "../EconomicsBackdrop"
 import useSiteContent from "../useSiteContent"
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
+import ThemeToggle from "../components/ThemeToggle"
 import {
   archivePages,
   leadershipTopics,
   defaultArchiveYears,
 } from "../data/club"
 
-const { Div, P } = AdminControls
+const { Div, P, Article, Img, Span, Small, H3 } = AdminControls
 
 type ManagedLeadership = {
   leadership?: Record<string, {
@@ -142,6 +143,7 @@ export default function ArchivePage({
           International Islamic University Chittagong{" "}
           <span className="tiny-arrow">↗</span>
         </span>
+        <ThemeToggle className="theme-toggle-on-brand" />
       </div>
       <header className="header">
         <a
@@ -217,37 +219,40 @@ export default function ArchivePage({
             </p>
             <div className="archive-profile-grid">
               {profiles.map((profile) => (
-                <article
-                  className="archive-profile-card"
+                <Article
+                  className="archive-profile-card profile-card"
                   key={`${profile.designation}-${profile.index}`}
                 >
-                  <div className="archive-profile-portrait" aria-hidden="true">
-                    {profile.image ? (
-                      <img
-                        src={profile.image}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          objectPosition: "center 20%",
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <span>
-                          <Icon name="people" />
-                        </span>
-                        <small>PHOTO TO COME</small>
-                      </>
-                    )}
-                  </div>
-                  <div className="archive-profile-info">
-                    <div className="eyebrow">{profile.designation}</div>
-                    <h3>{profile.name}</h3>
-                    <p>{profile.session}</p>
-                  </div>
-                </article>
+                  <Div className="profile-portrait-stage" aria-hidden="true">
+                    <Div className="archive-profile-portrait">
+                      {profile.image ? (
+                        <Img
+                          src={profile.image}
+                          alt=""
+                          className="archive-profile-photo"
+                        />
+                      ) : (
+                        <>
+                          <Span>
+                            <Icon name="people" />
+                          </Span>
+                          <Small>PHOTO TO COME</Small>
+                        </>
+                      )}
+                    </Div>
+                    <Span className="profile-club-seal">
+                      <Img src="/images/club-logo.png" alt="" />
+                    </Span>
+                  </Div>
+                  <Div className="archive-profile-info">
+                    <Div className="profile-registry">
+                      <Span>Leadership Archive</Span>
+                    </Div>
+                    <H3>{profile.name}</H3>
+                    <P className="profile-role">{profile.designation}</P>
+                    <P>{profile.session}</P>
+                  </Div>
+                </Article>
               ))}
             </div>
             <a className="button secondary" href="/#executives">

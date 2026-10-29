@@ -101,6 +101,52 @@ try {
   assert.deepEqual([...splitTeam.clubLeadership, ...splitTeam.executives], oldProfiles)
   assert.deepEqual(currentClubTeam(oldProfiles, []), { clubLeadership: [], executives: oldProfiles })
   assert.deepEqual(currentClubTeam([], oldProfiles).clubLeadership, oldProfiles)
+  const { moveTeamProfile, maxTeamProfiles } = await import(compile("admin/teamTransfer"))
+  const transferProfile = {
+    ...fixture.executives[0],
+    name: "Transfer member",
+    quote: "Learning and leadership.",
+    image: "https://example.com/profile.jpg",
+    imageZoom: 1.7,
+    imageX: 37,
+    imageY: 28,
+  }
+  const sameNameProfile = { ...transferProfile, studentId: "EB456" }
+  const existingLeader = { ...transferProfile, name: "Existing leader" }
+  const transferContent = {
+    ...fixture,
+    clubLeadership: [existingLeader],
+    executives: [transferProfile, sameNameProfile],
+  }
+  const beforeTransfer = contentSnapshot(transferContent)
+  const movedToLeadership = moveTeamProfile(transferContent, "executives", transferProfile)
+  assert.deepEqual(movedToLeadership.executives, [sameNameProfile])
+  assert.deepEqual(movedToLeadership.clubLeadership, [existingLeader, transferProfile])
+  assert.equal(movedToLeadership.clubLeadership.at(-1), transferProfile)
+  assert.equal(contentSnapshot(transferContent), beforeTransfer, "Moving never mutates the input draft.")
+  assert.equal(movedToLeadership.leadership, transferContent.leadership)
+  assert.equal(moveTeamProfile(movedToLeadership, "executives", transferProfile), movedToLeadership, "A stale click cannot move another member.")
+  assert.equal(moveTeamProfile(transferContent, "executives", { ...transferProfile }), transferContent, "Select by object identity, not by name.")
+  const movedBack = moveTeamProfile(movedToLeadership, "clubLeadership", transferProfile)
+  assert.deepEqual(movedBack.executives, [sameNameProfile, transferProfile])
+  assert.deepEqual(movedBack.clubLeadership, [existingLeader])
+  const emptyLeadership = moveTeamProfile(movedBack, "clubLeadership", existingLeader)
+  assert.deepEqual(emptyLeadership.clubLeadership, [])
+  assert.deepEqual(currentClubTeam(emptyLeadership.executives, emptyLeadership.clubLeadership).clubLeadership, [])
+  const fullLeadership = {
+    ...transferContent,
+    clubLeadership: Array.from({ length: maxTeamProfiles }, () => ({ ...existingLeader })),
+  }
+  assert.equal(moveTeamProfile(fullLeadership, "executives", transferProfile), fullLeadership, "Never remove a profile when the destination is full.")
+  const fullExecutives = {
+    ...transferContent,
+    executives: Array.from({ length: maxTeamProfiles }, () => ({ ...sameNameProfile })),
+  }
+  assert.equal(moveTeamProfile(fullExecutives, "clubLeadership", existingLeader), fullExecutives)
+  const legacyTeam = Array.from({ length: 5 }, (_, index) => ({ ...transferProfile, name: `Legacy ${index}` }))
+  const legacyMoved = moveTeamProfile({ ...fixture, executives: legacyTeam }, "executives", legacyTeam[3])
+  assert.deepEqual(legacyMoved.clubLeadership, [...legacyTeam.slice(0, 3), legacyTeam[3]])
+  assert.deepEqual(legacyMoved.executives, [legacyTeam[4]])
   assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg" }), ["https://example.com/old.jpg"])
   assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg", images: [] }), [])
   assert.equal(legacyPhotos({ image: "", images: Array.from({ length: 16 }, (_, i) => `https://example.com/${i}.jpg`) }).length, maxLegacyPhotos)
@@ -441,6 +487,9 @@ try {
   const signInHtml = renderToStaticMarkup(createElement(SignInPage))
   assert.match(signInHtml, /Forgot password/)
   assert.match(signInHtml, /Create account/)
+  assert.match(signInHtml, /role="switch" aria-label="Night mode"/)
+  assert.match(signInHtml, /Pause ambient animation/)
+  assert.match(signInHtml, /auth-orbit-map/)
   assert.doesNotMatch(signInHtml, /Email me a sign-in link/)
   const modeReact = write(
     "modeReact",
@@ -510,6 +559,48 @@ try {
   assert.match(html, /Third saved event/)
   assert.match(html, /View Saved seminar event/)
   assert.match(html, /Saved President/)
+  assert.match(html, /executive-card leadership-card profile-card/)
+  const { default: ExecutiveCard } = await import(compile("components/ExecutiveCard"))
+  const portraitCard = renderToStaticMarkup(createElement(ExecutiveCard, {
+    role: "General Secretary",
+    description: "Coordinating the club community.",
+    index: 0,
+    total: 1,
+    person: {
+      name: "Profile Member",
+      image: "https://example.com/portrait.jpg",
+      imageX: 35,
+      imageY: 25,
+      imageZoom: 1.2,
+      studentId: "EB42",
+      batch: "26",
+      quote: "Learning together.",
+    },
+  }))
+  assert.match(portraitCard, /<h3>Profile Member<\/h3><p class="profile-role">General Secretary<\/p>/)
+  assert.match(portraitCard, /object-position:35% 25%/)
+  assert.match(portraitCard, /scale\(1\.2\)/)
+  assert.match(portraitCard, /class="profile-portrait-stage"/)
+  assert.match(portraitCard, /class="profile-club-seal" aria-hidden="true"/)
+  assert.doesNotMatch(portraitCard, /profile-edition|COMMITTEE · IIUC|LEADERSHIP · IIUC/)
+  const executiveLabelCard = renderToStaticMarkup(createElement(ExecutiveCard, {
+    role: "Executive Member",
+    description: "Supporting the club community.",
+    index: 3,
+    total: 4,
+    leadership: false,
+  }))
+  assert.match(executiveLabelCard, /Executives Economics &amp; Banking Club/)
+  assert.doesNotMatch(executiveLabelCard, /profile-edition|COMMITTEE · IIUC/)
+  assert.match(portraitCard, /class="executive-reveal profile-quote"/)
+  assert.match(portraitCard, /<details class="profile-disclosure">/)
+  assert.match(portraitCard, /View profile details for Profile Member/)
+  assert.match(portraitCard, /View profile <svg/)
+  assert.doesNotMatch(portraitCard, /Follow|followers/i)
+  assert.match(portraitCard, /ID: EB42/)
+  assert.match(portraitCard, /Batch: 26/)
+  assert.match(portraitCard.split('class="executive-info"')[1], /Learning together/)
+  assert.doesNotMatch(portraitCard.split('class="executive-info"')[0], /executive-reveal/)
   assert.doesNotMatch(html, /Executive slot 30/)
   assert.doesNotMatch(html, /Economics in a changing world/)
   assert.doesNotMatch(html, /Profile 5 \/ 30/)
@@ -577,6 +668,25 @@ try {
   globalThis.__clubTestRoute = "/leadership/former-presidents"
   html = renderToStaticMarkup(createElement(App))
   assert.doesNotMatch(html, /Name to be announced/)
+  const emptyRoster = globalThis.__clubContentFixture
+  globalThis.__clubContentFixture = {
+    ...emptyRoster,
+    leadership: {
+      "former-presidents": [{
+        name: "Archived Member",
+        designation: "Former President",
+        session: "2024–2025",
+        image: "https://example.com/former-member.jpg",
+      }],
+    },
+  }
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /archive-profile-card profile-card/)
+  assert.doesNotMatch(html, /profile-edition/)
+  assert.match(html, /<h3>Archived Member<\/h3><p class="profile-role">Former President<\/p>/)
+  assert.match(html, /2024–2025/)
+  assert.match(html, /class="archive-profile-photo"/)
+  globalThis.__clubContentFixture = emptyRoster
   globalThis.__clubTestRoute = "/leadership/former-assistant-general-secretaries"
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /Former Assistant General Secretaries/)

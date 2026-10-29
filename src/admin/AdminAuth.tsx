@@ -2,6 +2,9 @@ import { useState } from "react"
 import AdminControls from "../AdminControls"
 import { supabase } from "../supabase"
 import PasswordField from "./PasswordField"
+import ThemeToggle from "../components/ThemeToggle"
+import Icon from "../components/Icon"
+import AuthAtmosphere from "./AuthAtmosphere"
 import {
   adminSignInUrl,
   normalizeAdminEmail,
@@ -50,6 +53,7 @@ export default function AdminAuth({
   const [message, setMessage] = useState(initialStatus)
   const [failed, setFailed] = useState(Boolean(initialStatus))
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const [motionPaused, setMotionPaused] = useState(false)
 
   const changeMode = (next: typeof mode) => {
     setMode(next)
@@ -74,7 +78,11 @@ export default function AdminAuth({
     }
   }
   return (
-    <Main className="admin-shell admin-auth">
+    <Main
+      className={`admin-shell admin-auth${
+        motionPaused ? " auth-motion-paused" : ""
+      }`}
+    >
       <Aside className="admin-auth-brand">
         <Link href="/" className="admin-brand light">
           <Img src="/images/club-logo.png" alt="" />
@@ -82,8 +90,11 @@ export default function AdminAuth({
             Economics & Banking Club<Small>IIUC · ADMIN</Small>
           </Span>
         </Link>
-        <Div>
-          <P className="admin-eyebrow light">CONTENT STUDIO</P>
+        <Div className="auth-brand-story">
+          <P className="admin-eyebrow light">
+            <Span className="auth-live-dot" /> THE CLUB. THE PEOPLE. THE NEXT
+            CHAPTER.
+          </P>
           <H1>
             Keep the club's story <Em>current.</Em>
           </H1>
@@ -92,10 +103,36 @@ export default function AdminAuth({
             the club moving forward.
           </P>
         </Div>
-        <Small>Registration alone never grants dashboard access.</Small>
+        <AuthAtmosphere />
+        <Div className="auth-brand-footer">
+          <Small>
+            <Icon name="shield" /> Registration alone never grants dashboard
+            access.
+          </Small>
+          <Button
+            type="button"
+            className="auth-motion-toggle"
+            onClick={() => setMotionPaused((paused) => !paused)}
+            aria-label={
+              motionPaused
+                ? "Resume ambient animation"
+                : "Pause ambient animation"
+            }
+          >
+            <Icon name={motionPaused ? "play" : "pause"} />
+            {motionPaused ? "Motion off" : "Motion on"}
+          </Button>
+        </Div>
       </Aside>
       <Section className="admin-auth-form">
+        <Div className="auth-toolbar">
+          <Link href="/" className="auth-back-link">
+            <Icon name="arrow" /> Back to website
+          </Link>
+          <ThemeToggle />
+        </Div>
         <Form
+          className="auth-access-card"
           onSubmit={(event) => {
             event.preventDefault()
             void perform(async () => {
@@ -137,7 +174,13 @@ export default function AdminAuth({
             })
           }}
         >
-          <P className="admin-eyebrow">CLUB DASHBOARD</P>
+          <Div className="auth-form-symbol">
+            <Icon name="shield" />
+          </Div>
+          <P className="admin-eyebrow">
+            CLUB DASHBOARD{" "}
+            <Span className="auth-access-label">MEMBER ACCESS</Span>
+          </P>
           <H2>
             {mode === "signup"
               ? "Request an account."
@@ -288,10 +331,13 @@ export default function AdminAuth({
           >
             {mode === "signin" ? "Create account" : "Back to sign in"}
           </Button>
-          <Link className="admin-link center" href="/">
-            Back to website
-          </Link>
+          <P className="auth-security-note">
+            <Icon name="shield" /> Secure sign-in. Owner-approved access.
+          </P>
         </Form>
+        <P className="auth-form-footer">
+          Economics & Banking Club <Span>·</Span> IIUC
+        </P>
       </Section>
     </Main>
   )

@@ -9,10 +9,11 @@
     "preview": "vite preview",
     "format": "oxfmt",
     "test:content": "node scripts/content-sync.test.mjs",
+    "test:theme": "node scripts/theme.test.mjs",
     "test:permissions": "node supabase/functions/server/validation.test.mjs",
     "test:source": "node scripts/export-source.test.mjs && node scripts/project-source.test.mjs",
     "source:export": "node scripts/export-source.mjs",
-    "test": "pnpm run test:content && pnpm run test:permissions && pnpm run test:source",
+    "test": "pnpm run test:theme && pnpm run test:content && pnpm run test:permissions && pnpm run test:source",
     "typecheck": "tsc --noEmit",
     "check": "pnpm run test && pnpm run typecheck"
   },

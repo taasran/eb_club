@@ -56,6 +56,8 @@
 .event-row-description { margin-top: var(--space-2); color: var(--muted); font-size: 12px; line-height: 1.6; }
 .event-modal-gallery { margin: var(--space-4) 0; border-radius: var(--radius-control); overflow: hidden; }
 .event-modal-gallery .activity-photo { margin: 0; border-radius: var(--radius-control); }
+.legacy-media > img.legacy-poster { object-fit: contain; background: var(--paper); filter: none; }
+.legacy-photo-source { position: absolute; left: var(--space-2); bottom: var(--space-2); z-index: 1; padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill); background: var(--brand-panel); color: var(--on-brand); font-size: 10px; }
 @media (max-width: 760px) {
   .fb-photo-grid, .fb-post-options { grid-template-columns: 1fr; }
   .fb-gallery-thumbnails { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }

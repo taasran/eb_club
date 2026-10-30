@@ -69,6 +69,7 @@ export type LegacyMilestone = {
   text: string
   image: string
   images?: string[]
+  gallery?: ActivityPhoto[]
   highlights?: string[]
 }
 
@@ -76,9 +77,23 @@ export const slideshowInterval = 3000
 export const maxLegacyPhotos = 15
 
 export function legacyPhotos(milestone: LegacyMilestone): string[] {
-  return (milestone.images ?? (milestone.image ? [milestone.image] : []))
-    .filter((url) => url.trim())
-    .slice(0, maxLegacyPhotos)
+  return legacyGallery(milestone).map((photo) => photo.src)
+}
+
+export function legacyGallery(milestone: LegacyMilestone): ActivityPhoto[] {
+  const seen = new Set<string>()
+  const photos = milestone.gallery ??
+    (milestone.images ?? (milestone.image ? [milestone.image] : [])).map((src) => ({
+      src,
+      alt: `${milestone.title} — programme photo`,
+      kind: "photo" as const,
+    }))
+  return photos.filter((photo) => {
+    const src = photo.src.trim()
+    if (!src || seen.has(src)) return false
+    seen.add(src)
+    return true
+  }).slice(0, maxLegacyPhotos)
 }
 
 // Older saves used the first three executive records for the leadership cards.

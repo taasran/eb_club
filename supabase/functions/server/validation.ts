@@ -90,6 +90,7 @@ export function validContent(value: unknown): boolean {
     optional(value.legacy, legacy => list(legacy, item =>
       fields(item, ["year", "title", "text"]) && record(item) && image(item.image) &&
       optional(item.images, images => Array.isArray(images) && images.length <= 15 && images.every(image)) &&
+      optional(item.gallery, photos => Array.isArray(photos) && photos.length <= 15 && photos.every(galleryPhoto)) &&
       optional(item.highlights, highlights => list(highlights, text)))) &&
     optional(value.activities, items => Array.isArray(items) && items.length <= 24 && items.every(clubActivity)) &&
     optional(value.activityImages, images => record(images) && Object.keys(images).length <= 20 &&

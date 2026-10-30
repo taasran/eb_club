@@ -99,6 +99,13 @@ for (const invalid of [
   { workshops: [{ ...galleryPhoto, source: "https://www.facebook.com/post/123?access_token=private" }] },
 ]) assert.equal(validContent({ ...content, activityGalleries: invalid }), false);
 const indexSource = readFileSync(new URL("./index.tsx", import.meta.url), "utf8");
+const legacyMilestone = { year: "2025", title: "Club milestone", text: "Our programme", image: "", gallery: [galleryPhoto] };
+assert.equal(validContent({ ...content, legacy: [legacyMilestone] }), true);
+assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: [] }] }), true);
+assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: Array(16).fill(galleryPhoto) }] }), false);
+assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: [{ ...galleryPhoto, src: "javascript:alert(1)" }] }] }), false);
+assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: [{ ...galleryPhoto, kind: "video" }] }] }), false);
+assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: [{ ...galleryPhoto, source: "https://evil.example.com/post/123" }] }] }), false);
 assert(indexSource.indexOf('app.use(`${base}/admin/*`') < indexSource.indexOf('app.get(`${base}/admin/facebook/history`'), "History routes must be protected by approved-admin middleware.");
 console.log("PASS: confirmed owner, non-owner and unconfirmed rejection, role permissions, content validation.");
 await import("./account_access.test.mjs");

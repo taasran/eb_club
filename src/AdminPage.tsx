@@ -5,6 +5,7 @@ import ActivityLog from "./admin/ActivityLog"
 import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
 import ProjectDownload from "./admin/ProjectDownload"
+import LegacyMilestonesManager from "./admin/LegacyMilestonesManager"
 import FacebookPhotoLibrary, {
   EventProgrammesManager,
   SparkActivityManager,
@@ -12,7 +13,9 @@ import FacebookPhotoLibrary, {
 import {
   appendActivityPhoto,
   appendEventPhoto,
+  appendLegacyPhoto,
   createEventFromArchivePost,
+  createLegacyFromArchivePost,
 } from "./admin/facebookArchive"
 import { resolveActivities } from "./activityMedia"
 import AdminControls from "./AdminControls"
@@ -28,8 +31,6 @@ import {
   readContent,
   publishContent,
   currentClubTeam,
-  maxLegacyPhotos,
-  type LegacyMilestone,
   type SiteContent,
 } from "./contentClient"
 import { announceContentUpdate } from "./useSiteContent"
@@ -736,30 +737,6 @@ export default function AdminPage() {
       ;[items[index], items[target]] = [items[target], items[index]]
       return { ...current, [list]: items }
     })
-  const updateMilestone = (index: number, patch: Partial<LegacyMilestone>) =>
-    setContent((current) => ({
-      ...current,
-      legacy: (current.legacy ?? []).map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    }))
-  const moveMilestone = (index: number, direction: -1 | 1) =>
-    setContent((current) => {
-      const legacy = [...(current.legacy ?? [])]
-      const target = index + direction
-      if (target < 0 || target >= legacy.length) return current
-      ;[legacy[index], legacy[target]] = [legacy[target], legacy[index]]
-      return { ...current, legacy }
-    })
-  const updateMilestonePhotos = (index: number, update: (photos: string[]) => string[]) =>
-    setContent(current => ({
-      ...current,
-      legacy: (current.legacy ?? []).map((item, itemIndex) => {
-        if (itemIndex !== index) return item
-        const images = update(item.images ?? (item.image ? [item.image] : [])).slice(0, maxLegacyPhotos)
-        return { ...item, images, image: images.find(url => url.trim()) ?? "" }
-      }),
-    }))
   const setActivityImage = (id: string, url: string) =>
     setContent((current) => {
       const activityGalleries = { ...current.activityGalleries }
@@ -842,7 +819,6 @@ export default function AdminPage() {
     Math.max(content.archiveYears.length - 1, 0),
   )
   const year = content.archiveYears[safeYear]
-  const milestones = content.legacy ?? []
   const teamList = tab === "clubLeadership" ? "clubLeadership" : "executives"
   const teamProfiles = content[teamList] ?? []
   const editingLeaders = teamList === "clubLeadership"
@@ -1448,152 +1424,27 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="OUR LEGACY"
               title="Legacy milestones"
-              description="Add up to 15 programme photos per milestone. Photos fade automatically every 3 seconds when visitors open the milestone."
-              action={
-                <button
-                  type="button"
-                  className="admin-btn ghost"
-                  onClick={() =>
-                    setContent((current) => ({
-                      ...current,
-                      legacy: [
-                        ...(current.legacy ?? []),
-                        {
-                          year: "",
-                          title: "",
-                          text: "",
-                          image: "",
-                          highlights: [],
-                        },
-                      ],
-                    }))
-                  }
-                >
-                  <AdminIcon name="plus" /> Add milestone
-                </button>
-              }
+              description="Add milestones and programme photos, just like Events and Find your spark. Upload from your device, add photo links, or import official Facebook photos."
             />
-            {milestones.length === 0 && (
-              <div className="admin-empty">
-                No milestones yet. The Legacy Timeline is hidden until you add
-                one.
-              </div>
-            )}
-            <div className="admin-people">
-              {milestones.map((item, index) => {
-                const photos = item.images ?? (item.image ? [item.image] : [])
-                return (
-                <article className="admin-card admin-person" key={index}>
-                  <div className="admin-person-head">
-                    <span className="admin-index">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <strong>{item.title || "Untitled milestone"}</strong>
-                    <button
-                      type="button"
-                      className="admin-icon-btn"
-                      aria-label="Move milestone earlier"
-                      title="Move earlier"
-                      disabled={index === 0}
-                      onClick={() => moveMilestone(index, -1)}
-                    >
-                      <AdminIcon name="up" />
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-icon-btn"
-                      aria-label="Move milestone later"
-                      title="Move later"
-                      disabled={index === milestones.length - 1}
-                      onClick={() => moveMilestone(index, 1)}
-                    >
-                      <AdminIcon name="down" />
-                    </button>
-                    <RemoveButton
-                      label="Remove milestone"
-                      onClick={() =>
-                        setContent((current) => ({
-                          ...current,
-                          legacy: (current.legacy ?? []).filter(
-                            (_, itemIndex) => itemIndex !== index,
-                          ),
-                        }))
-                      }
-                    />
-                  </div>
-                  <Div className="admin-person-head">
-                    <Strong>Programme photos · {photos.length} / {maxLegacyPhotos}</Strong>
-                    <Button
-                      type="button"
-                      className="admin-btn ghost"
-                      disabled={photos.length >= maxLegacyPhotos}
-                      onClick={() => updateMilestonePhotos(index, current => [...current, ""])}
-                    >
-                      <AdminIcon name="plus" /> Add photo
-                    </Button>
-                  </Div>
-                  {photos.length === 0 && <P className="form-note">No photos yet. Add up to 15 photos; a single photo is also supported.</P>}
-                  {photos.map((photo, photoIndex) => (
-                    <Div key={photoIndex}>
-                      <Div className="admin-person-head">
-                        <Span>Photo {photoIndex + 1}</Span>
-                        <RemoveButton
-                          label={`Remove photo ${photoIndex + 1}`}
-                          onClick={() => updateMilestonePhotos(index, current => current.filter((_, position) => position !== photoIndex))}
-                        />
-                      </Div>
-                      <ImageField
-                        size="1200 × 800 px (landscape 3:2)"
-                        label={`Programme photo ${photoIndex + 1}`}
-                        value={photo}
-                        onChange={value => updateMilestonePhotos(index, current => current.map((url, position) => position === photoIndex ? value : url))}
-                        onUpload={file => uploadImage(file, url =>
-                          updateMilestonePhotos(index, current => current.map((value, position) => position === photoIndex ? url : value)),
-                        )}
-                      />
-                    </Div>
-                  ))}
-                  <div className="admin-grid two">
-                    <Field
-                      label="Year"
-                      value={item.year}
-                      placeholder="e.g. 2025"
-                      onChange={(value) =>
-                        updateMilestone(index, { year: value })
-                      }
-                    />
-                    <Field
-                      label="Title"
-                      value={item.title}
-                      placeholder="e.g. EB Winter Fest 2025"
-                      onChange={(value) =>
-                        updateMilestone(index, { title: value })
-                      }
-                    />
-                  </div>
-                  <Field
-                    label="Description"
-                    value={item.text}
-                    multiline
-                    placeholder="What happened and why it mattered"
-                    onChange={(value) =>
-                      updateMilestone(index, { text: value })
-                    }
-                  />
-                  <Field
-                    label="Event highlights (one per line)"
-                    value={(item.highlights ?? []).join("\n")}
-                    multiline
-                    placeholder={"e.g. Campus-wide celebration\nCultural programme"}
-                    onChange={(value) =>
-                      updateMilestone(index, {
-                        highlights: value ? value.split("\n") : [],
-                      })
-                    }
-                  />
-                </article>
-              )})}
-            </div>
+            <LegacyMilestonesManager
+              content={content}
+              disabled={busy || pendingUploads > 0}
+              onChangeContent={setContent}
+              onUploadImage={uploadImage}
+              notify={notify}
+            />
+            <FacebookPhotoLibrary
+              request={request}
+              content={content}
+              disabled={busy}
+              mode="legacy"
+              onPending={change => setPendingUploads(count => Math.max(0, count + change))}
+              onAdd={(id, photo) => setContent(current => appendActivityPhoto(current, id, photo))}
+              onAddEvent={(index, photo) => setContent(current => appendEventPhoto(current, index, photo))}
+              onCreateEvent={(post, photo) => setContent(current => createEventFromArchivePost(current, post, photo))}
+              onAddLegacy={(index, photo) => setContent(current => appendLegacyPhoto(current, index, photo))}
+              onCreateLegacy={(post, photo) => setContent(current => createLegacyFromArchivePost(current, post, photo))}
+            />
           </>
         )}
 

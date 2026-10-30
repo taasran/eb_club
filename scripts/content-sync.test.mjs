@@ -72,6 +72,7 @@ const {
   contentSnapshot,
   currentClubTeam,
   legacyPhotos,
+  legacyGallery,
   maxLegacyPhotos,
 } = await import(write("contentClient", contentJs))
 const fixture = {
@@ -979,6 +980,10 @@ try {
   )
   assert.match(eventManagerHtml, /\+ Add custom event/)
   assert.match(eventManagerHtml, /\+ Economics &amp; Banking Seminar/)
+  assert.match(eventManagerHtml, /Event photos/)
+  assert.match(eventManagerHtml, /\+ Upload event photo/)
+  assert.match(eventManagerHtml, /Photo URL|Add photo link/)
+  assert(eventManagerHtml.indexOf("Event photos") < eventManagerHtml.indexOf("Event title"))
   const eventLibraryHtml = renderToStaticMarkup(
     createElement(FacebookPhotoLibrary, {
       request: async () =>
@@ -1018,6 +1023,62 @@ try {
   const eventPhotoHomeHtml = renderToStaticMarkup(createElement(App))
   assert.match(eventPhotoHomeHtml, /Workshop on Corporate Grooming\./)
   assert.match(eventPhotoHomeHtml, /event-row-thumb/)
+  const legacyDraft = {
+    ...fixture,
+    legacy: [{
+      year: "2025",
+      title: "Preserved milestone",
+      text: "Our department gathering.",
+      image: "https://example.com/old-cover.jpg",
+      images: ["https://example.com/old-cover.jpg", "https://example.com/old-second.jpg"],
+      highlights: ["Student-led programme"],
+    }],
+  }
+  const withLegacyPhoto = archiveClient.appendLegacyPhoto(
+    legacyDraft, 0, { ...importedPhoto, kind: "poster" },
+  )
+  assert.equal(legacyGallery(withLegacyPhoto.legacy[0]).length, 3)
+  assert.equal(legacyGallery(withLegacyPhoto.legacy[0])[2].kind, "poster")
+  assert.equal(legacyGallery(withLegacyPhoto.legacy[0])[2].source, importedPhoto.source)
+  assert.equal(legacyPhotos(withLegacyPhoto.legacy[0])[0], legacyDraft.legacy[0].image)
+  assert.deepEqual(withLegacyPhoto.legacy[0].highlights, legacyDraft.legacy[0].highlights)
+  assert.equal(
+    legacyGallery(archiveClient.appendLegacyPhoto(withLegacyPhoto, 0, importedPhoto).legacy[0]).length, 3,
+    "Importing the same photo twice must not create duplicate legacy slides.",
+  )
+  const reorderedLegacy = archiveClient.setLegacyGallery(withLegacyPhoto, 0, legacyGallery(withLegacyPhoto.legacy[0]).toReversed())
+  assert.equal(reorderedLegacy.legacy[0].image, importedPhoto.src)
+  assert.equal(reorderedLegacy.legacy[0].images[0], importedPhoto.src)
+  const cappedLegacy = archiveClient.setLegacyGallery(legacyDraft, 0,
+    Array.from({ length: 20 }, (_, index) => ({ ...importedPhoto, src: `https://example.com/gallery-${index}.jpg` })),
+  )
+  assert.equal(legacyPhotos(cappedLegacy.legacy[0]).length, 15)
+  assert.deepEqual(legacyPhotos(archiveClient.setLegacyGallery(withLegacyPhoto, 0, []).legacy[0]), [])
+  assert.equal(archiveClient.appendLegacyPhoto(legacyDraft, -1, importedPhoto), legacyDraft)
+  const createdLegacy = archiveClient.createLegacyFromArchivePost(legacyDraft, {
+    id: "451695514683833_999", message: "EB Winter Fest. Our community celebration.",
+    createdAt: "2025-12-01T00:00:00Z", url: importedPhoto.source, images: [],
+  }, importedPhoto)
+  assert.equal(createdLegacy.legacy[0].year, "2025")
+  assert.equal(createdLegacy.legacy[0].title, "EB Winter Fest.")
+  assert.equal(createdLegacy.legacy[1].title, "Preserved milestone")
+  const { default: LegacyMilestonesManager } = await import(compile("admin/LegacyMilestonesManager"))
+  const legacyManagerHtml = renderToStaticMarkup(createElement(LegacyMilestonesManager, {
+    content: withLegacyPhoto, disabled: false, onChangeContent() {}, onUploadImage() {}, notify() {},
+  }))
+  for (const text of ["+ Add custom milestone", "Choose milestone to edit", "+ Upload milestone photo", "Add photo link", "Milestone photos", "3 / 15", "Earlier", "Later", "Highlights"]) {
+    assert(legacyManagerHtml.includes(text), `Legacy manager should expose ${text}`)
+  }
+  const legacyLibraryHtml = renderToStaticMarkup(createElement(FacebookPhotoLibrary, {
+    request: async () => assert.fail("Only scan after an explicit admin action."),
+    content: legacyDraft, disabled: false, mode: "legacy", onAdd() {}, onPending() {},
+    onAddLegacy() {}, onCreateLegacy() {},
+  }))
+  assert.match(legacyLibraryHtml, /Import photos or create milestones from your Page history/)
+  globalThis.__clubContentFixture = reorderedLegacy
+  const legacyHomeHtml = renderToStaticMarkup(createElement(App))
+  assert.match(legacyHomeHtml, /legacy-poster/)
+  assert.match(legacyHomeHtml, /View original post/)
   globalThis.__clubContentFixture = fixture
   assert.equal(
     activityPhotos(activityDefinitions.find((item) => item.id === "tours"))

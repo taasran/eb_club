@@ -18,8 +18,11 @@ import activityPhotos, {
 } from "../activityMedia"
 import {
   eventStatuses,
+  legacyGallery,
+  maxLegacyPhotos,
   type ClubEvent,
   type EventStatus,
+  type LegacyMilestone,
   type SiteContent,
 } from "../contentClient"
 import {
@@ -58,6 +61,7 @@ function PostPhotos({
   post,
   availableActivities,
   events,
+  milestones,
   mode = "activity",
   disabled,
   onImport,
@@ -65,7 +69,8 @@ function PostPhotos({
   post: ArchivePost
   availableActivities: readonly ClubActivity[]
   events: readonly ClubEvent[]
-  mode?: "activity" | "event"
+  milestones: readonly LegacyMilestone[]
+  mode?: "activity" | "event" | "legacy"
   disabled: boolean
   onImport: (
     post: ArchivePost,
@@ -76,7 +81,9 @@ function PostPhotos({
 }) {
   const suggestion = suggestActivity(post.message, availableActivities)
   const defaultTarget =
-    mode === "event"
+    mode === "legacy"
+      ? milestones.length ? "legacy:0" : "new-legacy"
+      : mode === "event"
       ? events.length > 0
         ? "event:0"
         : "new-event"
@@ -85,6 +92,11 @@ function PostPhotos({
   const [kind, setKind] = useState<"photo" | "poster">("photo")
   const [expanded, setExpanded] = useState(false)
   const validTarget =
+    target === "new-legacy" ||
+    (target.startsWith("legacy:") &&
+      Number.isInteger(Number(target.slice(7))) &&
+      Number(target.slice(7)) >= 0 &&
+      Number(target.slice(7)) < milestones.length) ||
     target === "new-event" ||
     (target.startsWith("event:") &&
       Number.isInteger(Number(target.slice(6))) &&
@@ -93,7 +105,11 @@ function PostPhotos({
     availableActivities.some((item) => item.id === target)
   const selectedTarget = validTarget ? target : defaultTarget
   const actionLabel =
-    selectedTarget === "new-event"
+    selectedTarget === "new-legacy"
+      ? "Create milestone with photo"
+      : selectedTarget.startsWith("legacy:")
+        ? "Add to milestone"
+        : selectedTarget === "new-event"
       ? "Create event with photo"
       : selectedTarget.startsWith("event:")
         ? "Add to event"
@@ -112,7 +128,7 @@ function PostPhotos({
       <Div className="fb-post-options">
         <Label>
           <Span>
-            {mode === "event"
+            {mode === "legacy" ? "Choose legacy milestone" : mode === "event"
               ? "Choose event or activity"
               : "Review activity"}
           </Span>
@@ -121,7 +137,15 @@ function PostPhotos({
             onChange={(event) => setTarget(event.target.value)}
             disabled={disabled}
           >
-            <Option value="">Choose an activity</Option>
+            <Option value="">Choose a destination</Option>
+            {mode === "legacy" && (
+              <Option value="new-legacy">+ Create milestone from this post</Option>
+            )}
+            {milestones.map((item, index) => (
+              <Option key={`legacy-${index}`} value={`legacy:${index}`}>
+                Legacy · {item.year} · {item.title || "Untitled milestone"}
+              </Option>
+            ))}
             {mode === "event" && (
               <Option value="new-event">
                 + Create new event from this post
@@ -157,7 +181,7 @@ function PostPhotos({
           </Select>
         </Label>
       </Div>
-      {suggestion && mode !== "event" && (
+      {suggestion && mode === "activity" && (
         <Small className="admin-muted">
           Activity suggested from the caption. Check the image before adding it.
         </Small>
@@ -208,6 +232,8 @@ export default function FacebookPhotoLibrary({
   onAdd,
   onAddEvent,
   onCreateEvent,
+  onAddLegacy,
+  onCreateLegacy,
   onPending,
   mode = "activity",
 }: {
@@ -217,8 +243,10 @@ export default function FacebookPhotoLibrary({
   onAdd: (id: string, photo: ActivityPhoto) => void
   onAddEvent?: (eventIndex: number, photo: ActivityPhoto) => void
   onCreateEvent?: (post: ArchivePost, photo: ActivityPhoto) => void
+  onAddLegacy?: (milestoneIndex: number, photo: ActivityPhoto) => void
+  onCreateLegacy?: (post: ArchivePost, photo: ActivityPhoto) => void
   onPending: (change: number) => void
-  mode?: "activity" | "event"
+  mode?: "activity" | "event" | "legacy"
 }) {
   const currentActivities = resolveActivities(
     activities,
@@ -226,6 +254,7 @@ export default function FacebookPhotoLibrary({
     true,
   )
   const currentEvents = content.events ?? []
+  const currentMilestones = onAddLegacy ? content.legacy ?? [] : []
   const [posts, setPosts] = useState<ArchivePost[]>([])
   const [scanning, setScanning] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -301,6 +330,34 @@ export default function FacebookPhotoLibrary({
     kind: "photo" | "poster",
   ) => {
     if (disabled || importing || scanning) return
+    if (target === "new-legacy" || target.startsWith("legacy:")) {
+      const index = Number(target.slice(7))
+      const milestone = currentMilestones[index]
+      const creating = target === "new-legacy"
+      if (creating ? !onCreateLegacy : !milestone || !onAddLegacy) return
+      if (!creating && legacyGallery(milestone).length >= maxLegacyPhotos) {
+        setError(`This milestone already has ${maxLegacyPhotos} photos. Remove one before adding another.`)
+        return
+      }
+      setImporting(true)
+      onPending(1)
+      setError("")
+      setMessage("Copying the selected photo to club storage…")
+      try {
+        const photo = { ...await importArchivePhoto(request, photoId), kind }
+        if (creating) onCreateLegacy?.(post, photo)
+        else onAddLegacy?.(index, photo)
+        setMessage(creating
+          ? "Milestone draft created with a stored photo. Review the title, year and description, then Save changes."
+          : "Photo added to the milestone draft. Save changes to publish.")
+      } catch (failure) {
+        setError(failure instanceof Error ? failure.message : "The photo import failed.")
+      } finally {
+        onPending(-1)
+        setImporting(false)
+      }
+      return
+    }
     if (target === "new-event") {
       if (!onCreateEvent) return
       setImporting(true)
@@ -427,7 +484,9 @@ export default function FacebookPhotoLibrary({
             <Icon name="facebook" /> OFFICIAL PAGE ARCHIVE
           </P>
           <H3 id="fb-library-title">
-            {mode === "event"
+            {mode === "legacy"
+              ? "Import photos or create milestones from your Page history."
+              : mode === "event"
               ? "Import event photos or create events from your Page history."
               : "Find photos in your Page history."}
           </H3>
@@ -511,6 +570,7 @@ export default function FacebookPhotoLibrary({
           post={post}
           availableActivities={currentActivities}
           events={currentEvents}
+          milestones={currentMilestones}
           mode={mode}
           disabled={disabled || scanning || importing}
           onImport={add}
@@ -542,12 +602,20 @@ export function ActivityGalleryEditor({
   onChange,
   onReset,
   onUploadPhoto,
+  title = "Photo gallery",
+  maxPhotos = maxActivityPhotos,
+  resetLabel = "Use curated defaults",
+  emptyMessage = "No photos selected. Upload an image, add a photo link, or choose a reviewed Facebook photo.",
 }: {
   activity: Pick<ClubActivity, "id" | "label">
   photos: ActivityPhoto[]
   disabled: boolean
   onChange: (photos: ActivityPhoto[]) => void
   onReset: () => void
+  title?: string
+  maxPhotos?: number
+  resetLabel?: string
+  emptyMessage?: string
   onUploadPhoto?: (
     file: File | undefined,
     kind: "photo" | "poster",
@@ -556,7 +624,7 @@ export function ActivityGalleryEditor({
   const [newKind, setNewKind] = useState<"photo" | "poster">("photo")
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
-  const full = photos.length >= maxActivityPhotos
+  const full = photos.length >= maxPhotos
   const move = (index: number, direction: number) => {
     const next = [...photos]
     const target = index + direction
@@ -580,17 +648,18 @@ export function ActivityGalleryEditor({
   }
   return (
     <Div className="fb-gallery-editor">
+      <Strong>{title}</Strong>
       <Div className="fb-gallery-editor-heading">
         <Small>
-          {photos.length} / {maxActivityPhotos} gallery photos
+          {photos.length} / {maxPhotos} gallery photos
         </Small>
         <Button
           type="button"
           className="admin-link"
-          disabled={disabled}
+          disabled={disabled || (resetLabel === "Clear photos" && !photos.length)}
           onClick={onReset}
         >
-          Use curated defaults
+          {resetLabel}
         </Button>
       </Div>
       <Div className="fb-gallery-add-bar">
@@ -607,11 +676,12 @@ export function ActivityGalleryEditor({
         </Select>
         {onUploadPhoto && (
           <Label className="admin-btn ghost">
-            <Span>+ Upload to gallery</Span>
+            <Span>{title === "Event photos" ? "+ Upload event photo" : title === "Milestone photos" ? "+ Upload milestone photo" : "+ Upload to gallery"}</Span>
             <Input
               type="file"
               accept="image/*"
               hidden
+              aria-label={`Upload photo for ${activity.label}`}
               disabled={disabled || full}
               onChange={(event) => {
                 onUploadPhoto(event.target.files?.[0], newKind)
@@ -632,6 +702,7 @@ export function ActivityGalleryEditor({
       {showLinkInput && (
         <Div className="fb-gallery-link-row">
           <Input
+            aria-label={`Photo URL for ${activity.label}`}
             value={linkUrl}
             placeholder="https://…"
             disabled={disabled || full}
@@ -707,8 +778,7 @@ export function ActivityGalleryEditor({
       </Div>
       {!photos.length && (
         <P className="admin-muted">
-          No photos selected. Add a reviewed Facebook photo above, upload a
-          single image, or restore the curated defaults.
+          {emptyMessage}
         </P>
       )}
     </Div>
@@ -1414,6 +1484,39 @@ export function EventProgrammesManager({
                   </Div>
                 </Div>
 
+                <ActivityGalleryEditor
+                  title="Event photos"
+                  resetLabel="Clear photos"
+                  emptyMessage="Upload an event photo, add an image link, or use the Facebook archive above to add photos from official posts."
+                  activity={{
+                    id: `event-${index}`,
+                    label: item.title.trim() || `Event ${index + 1}`,
+                  }}
+                  photos={photos}
+                  disabled={disabled}
+                  onUploadPhoto={(file, kind) =>
+                    onUploadImage(file, (url) =>
+                      onChangeContent((current) =>
+                        appendEventPhoto(current, index, {
+                          src: url,
+                          kind,
+                          alt: `${item.title.trim() || "Club event"} — Economics & Banking Club, IIUC`,
+                        }),
+                      ),
+                    )
+                  }
+                  onChange={(nextPhotos) =>
+                    onChangeContent((current) =>
+                      setEventGallery(current, index, nextPhotos),
+                    )
+                  }
+                  onReset={() =>
+                    onChangeContent((current) =>
+                      setEventGallery(current, index, []),
+                    )
+                  }
+                />
+
                 <Div className="fb-post-options">
                   <Label className="admin-field">
                     <Span>Event title</Span>
@@ -1508,35 +1611,7 @@ export function EventProgrammesManager({
                   />
                 </Label>
 
-                <ActivityGalleryEditor
-                  activity={{
-                    id: `event-${index}`,
-                    label: item.title.trim() || `Event ${index + 1}`,
-                  }}
-                  photos={photos}
-                  disabled={disabled}
-                  onUploadPhoto={(file, kind) =>
-                    onUploadImage(file, (url) =>
-                      onChangeContent((current) =>
-                        appendEventPhoto(current, index, {
-                          src: url,
-                          kind,
-                          alt: `${item.title.trim() || "Club event"} — Economics & Banking Club, IIUC`,
-                        }),
-                      ),
-                    )
-                  }
-                  onChange={(nextPhotos) =>
-                    onChangeContent((current) =>
-                      setEventGallery(current, index, nextPhotos),
-                    )
-                  }
-                  onReset={() =>
-                    onChangeContent((current) =>
-                      setEventGallery(current, index, []),
-                    )
-                  }
-                />
+
               </Article>
             )
           })}

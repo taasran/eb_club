@@ -5,7 +5,7 @@ import activityPhotos, {
   resolveActivities,
   type ActivityPhoto,
 } from "../activityMedia"
-import type { ClubEvent, SiteContent } from "../contentClient"
+import { legacyGallery, maxLegacyPhotos, type ClubEvent, type SiteContent } from "../contentClient"
 import { activities } from "../data/club"
 
 export type ArchivePhoto = {
@@ -368,5 +368,66 @@ export function createEventFromArchivePost(
   return {
     ...content,
     events: [newEvent, ...content.events],
+  }
+}
+
+export function setLegacyGallery(
+  content: SiteContent,
+  milestoneIndex: number,
+  photos: ActivityPhoto[],
+): SiteContent {
+  if (!content.legacy?.[milestoneIndex]) return content
+  const seen = new Set<string>()
+  const gallery = photos.filter((photo) => {
+    if (!photo.src.trim() || seen.has(photo.src.trim())) return false
+    seen.add(photo.src.trim())
+    return true
+  }).slice(0, maxLegacyPhotos)
+  return {
+    ...content,
+    legacy: content.legacy.map((item, index) =>
+      index === milestoneIndex
+        ? { ...item, gallery, images: gallery.map((photo) => photo.src), image: gallery[0]?.src ?? "" }
+        : item,
+    ),
+  }
+}
+
+export function appendLegacyPhoto(
+  content: SiteContent,
+  milestoneIndex: number,
+  photo: ActivityPhoto,
+): SiteContent {
+  const milestone = content.legacy?.[milestoneIndex]
+  if (!milestone) return content
+  return setLegacyGallery(content, milestoneIndex, [...legacyGallery(milestone), photo])
+}
+
+export function createLegacyFromArchivePost(
+  content: SiteContent,
+  post: ArchivePost,
+  photo: ActivityPhoto,
+): SiteContent {
+  // Keep original-language captions in the private review UI, not the English public site.
+  const english = [...post.message.matchAll(/\p{L}/gu)].every(
+    ([letter]) => /\p{Script=Latin}/u.test(letter),
+  )
+  const summary = english ? summarizePostAsEvent(post) : null
+  return {
+    ...content,
+    legacy: [
+      {
+        year: Number.isFinite(Date.parse(post.createdAt))
+          ? String(new Date(post.createdAt).getUTCFullYear())
+          : "",
+        title: summary?.title || "New club milestone",
+        text: summary?.description || "",
+        highlights: [],
+        image: photo.src,
+        images: [photo.src],
+        gallery: [photo],
+      },
+      ...(content.legacy ?? []),
+    ],
   }
 }

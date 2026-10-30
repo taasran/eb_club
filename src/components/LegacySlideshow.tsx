@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import AdminControls from "../AdminControls"
-import { legacyPhotos, slideshowInterval, type LegacyMilestone } from "../contentClient"
+import { legacyGallery, slideshowInterval, type LegacyMilestone } from "../contentClient"
 
-const { Div, Img, Span } = AdminControls
+const { Div, Img, Span, Link } = AdminControls
 
 export default function LegacySlideshow({
   milestone,
@@ -11,7 +11,7 @@ export default function LegacySlideshow({
   milestone: LegacyMilestone
   active: boolean
 }) {
-  const photos = legacyPhotos(milestone)
+  const photos = legacyGallery(milestone)
   const [index, setIndex] = useState(0)
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -65,16 +65,21 @@ export default function LegacySlideshow({
     >
       {photos.length ? (
         <>
-          {photos.map((url, photoIndex) => (
+          {photos.map((photo, photoIndex) => (
             <Img
-              key={`${photoIndex}-${url}`}
-              src={url}
-              alt={photoIndex === current ? `${milestone.title} — photo ${photoIndex + 1}` : ""}
+              key={`${photoIndex}-${photo.src}`}
+              src={photo.src}
+              alt={photoIndex === current ? photo.alt || `${milestone.title} — photo ${photoIndex + 1}` : ""}
               aria-hidden={photoIndex !== current}
               loading="lazy"
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 motion-reduce:transition-none ${photoIndex === current ? "opacity-100" : "opacity-0"}`}
+              className={`absolute inset-0 h-full w-full transition-opacity duration-700 motion-reduce:transition-none ${photo.kind === "poster" ? "legacy-poster" : "object-cover"} ${photoIndex === current ? "opacity-100" : "opacity-0"}`}
             />
           ))}
+          {photos[current]?.source && (
+            <Link className="legacy-photo-source" href={photos[current].source} target="_blank" rel="noopener noreferrer">
+              View original post
+            </Link>
+          )}
           {photos.length > 1 && (
             <Span className="absolute right-3 bottom-3 rounded-full bg-(--forest) px-3 py-1 text-xs text-(--ivory)">
               {current + 1} / {photos.length}

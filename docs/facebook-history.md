@@ -25,6 +25,24 @@ Activity suggestions are keyword-based, including English and Bengali terms;
 ambiguous posts require manual classification. Video posts/attachments are
 not imported as photos. A fallback post-preview image is labelled for review.
 
+## Events and Our Legacy
+
+- **Admin → Events:** each event card starts with **Event photos**. Use
+  **Upload event photo**, **Add photo link**, or scan the Official Page Archive.
+  Choose an existing event or create an event draft from a post.
+- **Admin → Our Legacy:** choose a milestone, add a custom milestone or a
+  template, then use **Upload milestone photo** or **Add photo link**.
+  Its Official Page Archive supports **Add to milestone** and
+  **Create milestone with photo**. Imported years come from the post date;
+  review the year, title and description before publishing.
+- Legacy galleries support 15 photos per milestone; event/activity galleries
+  support 30. Reorder, remove, or choose photo/poster fit in each editor.
+- Existing legacy images remain available. Rich galleries preserve each photo's
+  fit, alt text and Facebook attribution, while keeping the older image fields
+  synchronized. An empty gallery stays empty.
+- All imports remain drafts until **Save changes**. Deploy both frontend and
+  backend for the new legacy gallery validation.
+
 ## Limits and continuity
 
 - A scan advances one Graph request per authenticated request, with a short

@@ -179,9 +179,6 @@ export const aboutTopics = [
   },
 ]
 
-const photo = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`
-
 export const heroAchievements = [
   "EB Day 2020",
   "EB Winter Fest 2025",
@@ -252,8 +249,20 @@ export const activities = [
     title: "Learning beyond the classroom.",
     text: "Research and debate workshops, seminars, and thoughtful conversations on economics, markets, and banking.",
     icon: "chart",
-    image: photo("1503428593586-e225b39bddfe"),
-    alt: "Participants writing in notebooks during a workshop",
+    image: "/images/activities/icbm-conference.webp",
+    imageKind: "photo",
+    imageSource:
+      "https://www.facebook.com/122207097422536052/posts/122204199176536052",
+    alt: "IIUC Economics & Banking faculty and university representatives at the ICBM 2026 conference",
+    additionalImages: [
+      {
+        src: "/images/activities/corporate-grooming.webp",
+        kind: "poster",
+        source:
+          "https://www.facebook.com/122207097422536052/posts/122207414948536052",
+        alt: "Official Corporate Grooming workshop announcement from the IIUC Economics & Banking Club",
+      },
+    ],
   },
   {
     id: "industrial-visits",
@@ -262,8 +271,10 @@ export const activities = [
     title: "See how industry really works.",
     text: "Visits to factories, banks, and offices that connect theory with the way organisations operate every day.",
     icon: "briefcase",
-    image: photo("1651525670114-2b8117390b28"),
-    alt: "A group of visitors touring a factory floor",
+    image: "",
+    imageKind: "photo",
+    imageSource: "",
+    alt: "Economics & Banking Club industrial visits",
   },
   {
     id: "leadership",
@@ -272,8 +283,11 @@ export const activities = [
     title: "Build skills. Find your direction.",
     text: "Leadership development, teamwork, and career-focused sessions that prepare members for what comes next.",
     icon: "people",
-    image: photo("1758270705317-3ef6142d306f"),
-    alt: "Students working together around a laptop",
+    image: "/images/activities/corporate-grooming.webp",
+    imageKind: "poster",
+    imageSource:
+      "https://www.facebook.com/122207097422536052/posts/122207414948536052",
+    alt: "Official Corporate Grooming workshop poster: preparing IIUC Economics & Banking students for the professional world",
   },
   {
     id: "tournaments",
@@ -282,8 +296,10 @@ export const activities = [
     title: "Cricket, football, and team spirit.",
     text: "Departmental cricket and football tournaments that bring batches together on and off the field.",
     icon: "flag",
-    image: photo("1565787154274-c8d076ad34e7"),
-    alt: "Students playing cricket on an open field",
+    image: "",
+    imageKind: "photo",
+    imageSource: "",
+    alt: "Economics & Banking Club sports tournaments",
   },
   {
     id: "health-camp",
@@ -292,8 +308,10 @@ export const activities = [
     title: "Caring for our community.",
     text: "Health camps and volunteer initiatives where members give their time to support others.",
     icon: "heart",
-    image: photo("1623658045230-605cb00c80d6"),
-    alt: "A volunteer checking blood pressure at a health camp",
+    image: "",
+    imageKind: "photo",
+    imageSource: "",
+    alt: "Economics & Banking Club health camps",
   },
   {
     id: "tours",
@@ -302,7 +320,9 @@ export const activities = [
     title: "Explore together, return closer.",
     text: "Departmental tours and trips that turn classmates into lifelong friends.",
     icon: "pin",
-    image: photo("1706350338997-d57d49a9c83e"),
-    alt: "A group of students standing together on a rocky beach",
+    image: "",
+    imageKind: "photo",
+    imageSource: "",
+    alt: "Economics & Banking Club departmental tours",
   },
 ] as const

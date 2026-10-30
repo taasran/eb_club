@@ -1,64 +1,75 @@
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
 
-const { Div, Span, Img, Small, Strong } = AdminControls
+const { Div, Span, Small, Strong } = AdminControls
 
 /** Decorative club artwork: no live analytics or account information. */
 export default function AuthAtmosphere() {
   return (
     <Div className="auth-atmosphere" aria-hidden="true">
       <Div className="auth-ambient-glow" />
-      <svg className="auth-orbit-map" viewBox="0 0 560 360" fill="none">
-        <g className="auth-orbit-grid">
-          <path d="M0 90h560M0 180h560M0 270h560M140 0v360M280 0v360M420 0v360" />
-          <circle cx="280" cy="180" r="140" />
-          <circle cx="280" cy="180" r="104" />
-          <path d="M140 180h280M280 40v280" />
+      <svg className="auth-market-graph" viewBox="0 0 560 360" fill="none">
+        <text className="auth-graph-heading" x="70" y="30">
+          MARKET EQUILIBRIUM
+        </text>
+        <g className="auth-graph-grid">
+          <path d="M70 78h430M70 120h430M70 162h430M70 204h430M70 246h430M112 56v214M196 56v214M280 56v214M364 56v214M448 56v214" />
         </g>
-        <g className="auth-orbit-track">
-          <ellipse
-            cx="280"
-            cy="180"
-            rx="220"
-            ry="91"
-            transform="rotate(-24 280 180)"
-          />
-          <ellipse
-            cx="280"
-            cy="180"
-            rx="185"
-            ry="121"
-            transform="rotate(32 280 180)"
-          />
+        <g className="auth-graph-axes">
+          <path d="M70 56v214h430M65 63l5-7 5 7M493 265l7 5-7 5" />
         </g>
-        <g className="auth-orbit-satellite">
-          <circle cx="280" cy="180" r="140" strokeDasharray="2 14" />
-          <circle className="auth-orbit-star" cx="280" cy="40" r="5" />
-          <circle
-            className="auth-orbit-star secondary"
-            cx="280"
-            cy="320"
-            r="4"
-          />
+        <g className="auth-graph-guides">
+          <path d="M70 162h210v108" />
         </g>
-        <g className="auth-orbit-details">
-          <path d="M86 78h12m-6-6v12M451 274h12m-6-6v12M454 80h8m-4-4v8" />
-          <circle cx="97" cy="265" r="3" />
-          <circle cx="460" cy="123" r="2" />
+        <path
+          className="auth-market-curve auth-supply-curve"
+          pathLength="1"
+          d="M90 246 470 78"
+        />
+        <path
+          className="auth-market-curve auth-demand-curve"
+          pathLength="1"
+          d="M90 78 470 246"
+        />
+        <g className="auth-graph-labels">
+          <text x="24" y="55">
+            PRICE
+          </text>
+          <text x="415" y="302">
+            QUANTITY
+          </text>
+          <text className="auth-supply-label" x="478" y="80">
+            S
+          </text>
+          <text className="auth-demand-label" x="478" y="251">
+            D
+          </text>
+          <text x="40" y="167">
+            P*
+          </text>
+          <text x="273" y="290">
+            Q*
+          </text>
+          <text x="56" y="289">
+            0
+          </text>
+        </g>
+        <g className="auth-equilibrium-point">
+          <circle cx="280" cy="162" r="12" className="auth-equilibrium-halo" />
+          <circle cx="280" cy="162" r="4" />
+          <rect x="294" y="126" width="107" height="25" rx="6" />
+          <text x="306" y="142">
+            EQUILIBRIUM
+          </text>
         </g>
       </svg>
-      <Div className="auth-crest">
-        <Div className="auth-crest-inner">
-          <Img src="/images/club-logo.png" alt="" />
-        </Div>
-      </Div>
       <Div className="auth-floating-note auth-note-learning">
         <Span className="auth-note-icon">
           <Icon name="chart" />
         </Span>
         <Div>
-          <Small>THE NEXT CHAPTER</Small>
-          <Strong>Ideas into impact.</Strong>
+          <Small>ECONOMICS &amp; BANKING</Small>
+          <Strong>Understanding markets.</Strong>
         </Div>
         <Div className="auth-mini-chart">
           <Span />
@@ -78,8 +89,8 @@ export default function AuthAtmosphere() {
         </Div>
         <Span className="auth-note-dot" />
       </Div>
-      <Span className="auth-orbit-caption">
-        LEARNING · LEADERSHIP · COMMUNITY
+      <Span className="auth-graph-caption">
+        ILLUSTRATIVE ECONOMICS GRAPH · NOT LIVE DATA
       </Span>
     </Div>
   )

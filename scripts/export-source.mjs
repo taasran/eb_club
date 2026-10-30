@@ -55,12 +55,15 @@ function removePublicSourceCopies(root) {
   const designPath = path.join(downloads, "iiuc-eb-club-design-package.zip")
   if (fs.existsSync(designPath)) {
     // An old "design" package also contained TSX/CSS source. Keep only design assets.
+    const entries = Object.entries(unzipSync(fs.readFileSync(designPath)))
     const designs = Object.fromEntries(
-      Object.entries(unzipSync(fs.readFileSync(designPath))).filter(([name]) =>
+      entries.filter(([name]) =>
         /\.(?:svg|png|jpe?g|webp|pdf)$/i.test(name),
       ),
     )
-    fs.writeFileSync(designPath, zipSync(designs, { level: 9 }))
+    if (Object.keys(designs).length !== entries.length) {
+      fs.writeFileSync(designPath, zipSync(designs, { level: 9 }))
+    }
   }
 }
 

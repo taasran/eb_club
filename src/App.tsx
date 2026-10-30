@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage"
 import ArchivePage from "./pages/ArchivePage"
 import NotFoundPage from "./pages/NotFoundPage"
 import ResetPasswordPage from "./pages/ResetPasswordPage"
+import ProfilePage from "./pages/ProfilePage"
 import { archivePages } from "./data/club"
 import trackVisit from "./lib/analytics"
 import { updatePageMetadata } from "./seo"
@@ -13,6 +14,7 @@ const router = createBrowserRouter([
   { path: "/", Component: HomePage },
   { path: "/admin", Component: AdminPage },
   { path: "/admin/reset-password", Component: ResetPasswordPage },
+  { path: "/profiles/:group/:profileKey", Component: ProfilePage },
   ...archivePages.map((page) => ({
     path: `/leadership/${page.slug}`,
     Component: () => <ArchivePage page={page} />,

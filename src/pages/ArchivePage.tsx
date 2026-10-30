@@ -4,13 +4,14 @@ import useSiteContent from "../useSiteContent"
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
 import ThemeToggle from "../components/ThemeToggle"
+import { profileHref } from "../profileDirectory"
 import {
   archivePages,
   leadershipTopics,
   defaultArchiveYears,
 } from "../data/club"
 
-const { Div, P, Article, Img, Span, Small, H3 } = AdminControls
+const { Div, P, Article, Img, Span, Small, H3, Link } = AdminControls
 
 type ManagedLeadership = {
   leadership?: Record<string, {
@@ -245,13 +246,22 @@ export default function ArchivePage({
                     </Span>
                   </Div>
                   <Div className="archive-profile-info">
+                    <H3>{profile.name}</H3>
+                    <P className="profile-role">{profile.designation}</P>
                     <Div className="profile-registry">
                       <Span>Leadership Archive</Span>
                     </Div>
-                    <H3>{profile.name}</H3>
-                    <P className="profile-role">{profile.designation}</P>
-                    <P>{profile.session}</P>
                   </Div>
+                  <P className="archive-profile-session">{profile.session}</P>
+                  <Link
+                    className="profile-open-link"
+                    href={profileHref(profile, page.slug, profile.index - 1)}
+                    aria-label={`View profile details for ${profile.name}, ${profile.designation}`}
+                  >
+                    <Span className="profile-details-pill">
+                      View profile <Icon name="arrow" />
+                    </Span>
+                  </Link>
                 </Article>
               ))}
             </div>

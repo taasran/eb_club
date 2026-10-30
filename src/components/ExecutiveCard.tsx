@@ -1,7 +1,8 @@
 import AdminControls from "../AdminControls"
 import Icon from "./Icon"
+import { profileHref } from "../profileDirectory"
 
-const { Article, Div, Img, Span, P, H3, Details, Summary } = AdminControls
+const { Article, Div, Img, Span, P, H3, Link } = AdminControls
 
 export type ManagedExecutive = {
   name?: string
@@ -16,7 +17,7 @@ export type ManagedExecutive = {
 }
 
 // One illustrated avatar for every profile without a photo keeps the roster consistent.
-function IllustratedAvatar() {
+export function IllustratedAvatar() {
   return (
     <svg
       className="executive-avatar"
@@ -42,14 +43,12 @@ function IllustratedAvatar() {
 
 export default function ExecutiveCard({
   role,
-  description,
   index,
   person,
   total,
   leadership = index < 3,
 }: {
   role: string
-  description: string
   index: number
   person?: ManagedExecutive
   total: number
@@ -65,7 +64,6 @@ export default function ExecutiveCard({
   ]
     .filter(Boolean)
     .join(" · ")
-  const quote = person?.quote?.trim()
   return (
     <Article
       className={
@@ -100,6 +98,8 @@ export default function ExecutiveCard({
         </Span>
       </Div>
       <Div className="executive-info">
+        <H3>{name}</H3>
+        <P className="profile-role">{role}</P>
         <Div className="profile-registry">
           <Span>
             {leadership
@@ -107,32 +107,23 @@ export default function ExecutiveCard({
               : "Executives Economics & Banking Club"}
           </Span>
         </Div>
-        <H3>{name}</H3>
-        <P className="profile-role">{role}</P>
-        <Details className="profile-disclosure">
-          <Summary
-            className="profile-details-toggle"
-            aria-label={`View profile details for ${name}${
-              details ? `, ${details}` : ""
-            }`}
-          >
-            <Span className="executive-details">{details || "IIUC"}</Span>
-            <Span className="profile-details-pill">
-              View profile <Icon name="chevron" />
-            </Span>
-          </Summary>
-          <Div
-            className={
-              quote ? "executive-reveal profile-quote" : "executive-reveal"
-            }
-          >
-            <Span className="executive-reveal-label">
-              {quote ? "In their words" : "Responsibility"}
-            </Span>
-            <P>{quote ? `“${quote}”` : description}</P>
-          </Div>
-        </Details>
+        {details && <P className="executive-details">{details}</P>}
       </Div>
+      <Link
+        className="profile-open-link"
+        href={profileHref(
+          person ?? { designation: role },
+          leadership ? "leadership" : "executives",
+          index,
+        )}
+        aria-label={`View profile details for ${name}${
+          details ? `, ${details}` : ""
+        }`}
+      >
+        <Span className="profile-details-pill">
+          View profile <Icon name="arrow" />
+        </Span>
+      </Link>
     </Article>
   )
 }

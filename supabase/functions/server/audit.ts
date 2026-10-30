@@ -54,5 +54,6 @@ export function describeContentChange(before: Json | null, after: Json): { area:
       (oldLeaders[slug] as unknown[]) ?? [], (newLeaders[slug] as unknown[]) ?? [], ["name"]))
   }
   if (!same(old.activityImages, after.activityImages)) details.push("Activity photos changed")
+  if (!same(old.activityGalleries, after.activityGalleries)) details.push("Activity photo galleries changed")
   return { area: "Website content", details: details.slice(0, 40) }
 }

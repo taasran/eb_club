@@ -19,6 +19,25 @@ const executive = (item: unknown) => fields(item, ["name", "designation", "stude
   optional(item.imageZoom, n => typeof n === "number" && n >= 1 && n <= 3) &&
   optional(item.imageX, n => typeof n === "number" && n >= 0 && n <= 100) &&
   optional(item.imageY, n => typeof n === "number" && n >= 0 && n <= 100);
+const activityIds = ["workshops", "industrial-visits", "leadership", "tournaments", "health-camp", "tours"];
+const galleryPhoto = (item: unknown) => {
+  if (!record(item) || typeof item.src !== "string" || !item.src ||
+    !(image(item.src) || /^\/images\/activities\/[a-z0-9-]+\.webp$/.test(item.src)) ||
+    typeof item.alt !== "string" || item.alt.length > 500 || !["photo", "poster"].includes(String(item.kind))) return false;
+  if (!item.src.startsWith("/")) {
+    try {
+      const src = new URL(item.src);
+      if (src.username || src.password || [...src.searchParams.keys()].some(key => /token|secret/i.test(key))) return false;
+    } catch { return false; }
+  }
+  if (item.source === undefined || item.source === "") return true;
+  try {
+    if (typeof item.source !== "string" || item.source.length > 2000) return false;
+    const url = new URL(item.source);
+    return url.protocol === "https:" && ["facebook.com", "www.facebook.com", "m.facebook.com"].includes(url.hostname) &&
+      !url.username && !url.password && ![...url.searchParams.keys()].some(key => /token|secret/i.test(key));
+  } catch { return false; }
+};
 
 export function isOwner(user: { email?: string; email_confirmed_at?: string | null }, ownerEmail: string) {
   return Boolean(user.email_confirmed_at && user.email &&
@@ -51,5 +70,8 @@ export function validContent(value: unknown): boolean {
       optional(item.highlights, highlights => list(highlights, text)))) &&
     optional(value.activityImages, images => record(images) && Object.keys(images).length <= 20 &&
       Object.entries(images).every(([key, url]) => /^[a-z0-9-]{1,40}$/i.test(key) && image(url))) &&
+    optional(value.activityGalleries, galleries => record(galleries) && Object.keys(galleries).length <= activityIds.length &&
+      Object.entries(galleries).every(([key, photos]) => activityIds.includes(key) &&
+        Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto))) &&
     optional(value.contactEmail, email) && optional(value.linkedinUrl, image);
 }

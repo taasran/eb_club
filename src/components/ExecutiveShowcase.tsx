@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
 import AdminControls from "../AdminControls"
-import { committee } from "../data/club"
 import { slideshowInterval } from "../contentClient"
 import ExecutiveCard, { type ManagedExecutive } from "./ExecutiveCard"
 
@@ -113,10 +112,6 @@ export default function ExecutiveShowcase({
     <ExecutiveCard
       key={index}
       role={person.designation || "Executive Member"}
-      description={
-        committee.find(([role]) => role === person.designation)?.[1] ??
-        "Economics & Banking Club executive team."
-      }
       index={index}
       person={person}
       total={leadership ? leaders.length : profiles.length}
@@ -130,7 +125,9 @@ export default function ExecutiveShowcase({
         {leaders.map((person, index) => card(person, index, true))}
       </Div>
       {leaders.length === 0 && (
-        <P className="executives-note">No club leadership profiles are currently published.</P>
+        <P className="executives-note">
+          No club leadership profiles are currently published.
+        </P>
       )}
       <Div
         className={
@@ -153,8 +150,8 @@ export default function ExecutiveShowcase({
               <Span className="slider-status-dot" aria-hidden="true" />
             </Div>
             <P>
-              {profiles.length} profiles · Automatically advances every 3 seconds · Swipe to
-              explore
+              {profiles.length} profiles · Automatically advances every 3
+              seconds · Swipe to explore
             </P>
           </Div>
           {profiles.length > 0 && (

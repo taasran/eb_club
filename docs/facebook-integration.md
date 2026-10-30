@@ -4,6 +4,9 @@ The homepage's **The latest from our club** section reads the club's Page posts
 through the existing Supabase function. The React app never calls Graph API or
 receives a Facebook access token.
 
+The six-post public feed is intentionally unchanged. For older posts and
+multiple album photos, see [the approved-admin archive workflow](facebook-history.md).
+
 ## Runtime secrets
 
 In the connected Supabase project, open **Edge Functions → Secrets** and save:

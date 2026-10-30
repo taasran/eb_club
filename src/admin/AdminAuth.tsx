@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import AdminControls from "../AdminControls"
 import { supabase } from "../supabase"
 import PasswordField from "./PasswordField"
@@ -53,9 +53,18 @@ export default function AdminAuth({
   const [message, setMessage] = useState(initialStatus)
   const [failed, setFailed] = useState(Boolean(initialStatus))
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
-  const [motionPaused, setMotionPaused] = useState(false)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const previousMode = useRef(mode)
+
+  useEffect(() => {
+    if (previousMode.current !== mode) {
+      headingRef.current?.focus()
+      previousMode.current = mode
+    }
+  }, [mode])
 
   const changeMode = (next: typeof mode) => {
+    if (busy || next === mode) return
     setMode(next)
     setMessage("")
     setFailed(false)
@@ -78,11 +87,7 @@ export default function AdminAuth({
     }
   }
   return (
-    <Main
-      className={`admin-shell admin-auth${
-        motionPaused ? " auth-motion-paused" : ""
-      }`}
-    >
+    <Main className="admin-shell admin-auth">
       <Aside className="admin-auth-brand">
         <Link href="/" className="admin-brand light">
           <Img src="/images/club-logo.png" alt="" />
@@ -109,19 +114,6 @@ export default function AdminAuth({
             <Icon name="shield" /> Registration alone never grants dashboard
             access.
           </Small>
-          <Button
-            type="button"
-            className="auth-motion-toggle"
-            onClick={() => setMotionPaused((paused) => !paused)}
-            aria-label={
-              motionPaused
-                ? "Resume ambient animation"
-                : "Pause ambient animation"
-            }
-          >
-            <Icon name={motionPaused ? "play" : "pause"} />
-            {motionPaused ? "Motion off" : "Motion on"}
-          </Button>
         </Div>
       </Aside>
       <Section className="admin-auth-form">
@@ -131,210 +123,239 @@ export default function AdminAuth({
           </Link>
           <ThemeToggle />
         </Div>
-        <Form
-          className="auth-access-card"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void perform(async () => {
-              if (mode === "signup") {
-                await registerAccount(
-                  supabase.auth,
-                  { name, matricId, email, batch },
-                  password,
-                  confirmation,
-                )
-                setPassword("")
-                setConfirmation("")
-                setMode("signin")
-                setMessage(
-                  "Registration submitted. The owner can review your details under Account requests. Wait for approval, and confirm your email if Supabase sends a confirmation. Already registered? Sign in or use Forgot password.",
-                )
-              } else if (mode === "forgot") {
-                await requestPasswordReset(supabase.auth, email)
-                setMessage(
-                  "If this email has an account, a password-reset email has been requested. Check your inbox and spam folder. Resetting a password does not bypass owner approval.",
-                )
-              } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                  email: normalizeAdminEmail(email),
-                  password,
-                })
-                if (error) {
-                  setNeedsConfirmation(error.code === "email_not_confirmed")
-                  throw new Error(error.message)
-                }
-                setNeedsConfirmation(false)
-                const result = await onAuthenticated()
-                if (!result.ok)
-                  throw new Error(
-                    result.error ?? "Your account is awaiting owner approval.",
-                  )
-                setPassword("")
-              }
-            })
-          }}
-        >
-          <Div className="auth-form-symbol">
-            <Icon name="shield" />
-          </Div>
-          <P className="admin-eyebrow">
-            CLUB DASHBOARD{" "}
-            <Span className="auth-access-label">MEMBER ACCESS</Span>
-          </P>
-          <H2>
-            {mode === "signup"
-              ? "Request an account."
-              : mode === "forgot"
-                ? "Forgot your password?"
-                : "Welcome back."}
-          </H2>
-          <P className="admin-muted">
-            {mode === "signup"
-              ? "Tell us who you are. The owner will review your request before you can enter."
-              : mode === "forgot"
-                ? "Enter the email you used when creating your account."
-                : "Use the email and password you registered with. New accounts need owner approval."}
-          </P>
-          {mode === "signup" && (
-            <>
-              <Label className="admin-field">
-                <Span>Full name</Span>
-                <Input
-                  required
-                  maxLength={100}
-                  autoComplete="name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </Label>
-              <Label className="admin-field">
-                <Span>Matric ID</Span>
-                <Input
-                  required
-                  maxLength={40}
-                  value={matricId}
-                  placeholder="e.g. EB253022"
-                  onChange={(event) => setMatricId(event.target.value)}
-                />
-              </Label>
-              <Label className="admin-field">
-                <Span>Batch</Span>
-                <Input
-                  required
-                  maxLength={50}
-                  value={batch}
-                  placeholder="e.g. 26th"
-                  onChange={(event) => setBatch(event.target.value)}
-                />
-              </Label>
-            </>
-          )}
-          <Label className="admin-field">
-            <Span>Email</Span>
-            <Input
-              required
-              type="email"
-              maxLength={250}
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </Label>
-          {mode !== "forgot" && (
-            <PasswordField
-              value={password}
-              onChange={setPassword}
-              autoComplete={
-                mode === "signup" ? "new-password" : "current-password"
-              }
-            />
-          )}
-          {mode === "signup" && (
-            <>
-              <PasswordField
-                id="confirm-password"
-                label="Confirm password"
-                value={confirmation}
-                onChange={setConfirmation}
-                autoComplete="new-password"
-              />
-              <P className="admin-muted">
-                Use at least 8 characters. Your password is managed by Supabase
-                Auth and is never shown to the owner. Profile details are
-                self-reported and subject to review.
-              </P>
-            </>
-          )}
-          <Button
-            type="submit"
-            className="admin-btn primary block"
-            disabled={busy}
+        <Div className="auth-access-stage" data-mode={mode}>
+          <Div
+            className="auth-mode-switch"
+            role="group"
+            aria-label="Account access"
           >
-            {busy
-              ? "Please wait…"
-              : mode === "signup"
-                ? "Create account & request approval"
-                : mode === "forgot"
-                  ? "Send password-reset email"
-                  : "Sign in"}
-          </Button>
-          {message && (
-            <Div
-              className={`admin-status ${failed ? "error" : "success"}`}
-              role="status"
-            >
-              {message}
-            </Div>
-          )}
-          {mode === "signin" && (
             <Button
               type="button"
-              className="admin-link"
+              aria-pressed={mode === "signin"}
               disabled={busy}
-              onClick={() => changeMode("forgot")}
+              onClick={() => changeMode("signin")}
             >
-              Forgot password?
+              Sign in
             </Button>
-          )}
-          {needsConfirmation && (
+            <Button
+              type="button"
+              aria-pressed={mode === "signup"}
+              disabled={busy}
+              onClick={() => changeMode("signup")}
+            >
+              Create account
+            </Button>
+          </Div>
+          <Form
+            key={mode}
+            data-mode={mode}
+            className="auth-access-card"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void perform(async () => {
+                if (mode === "signup") {
+                  await registerAccount(
+                    supabase.auth,
+                    { name, matricId, email, batch },
+                    password,
+                    confirmation,
+                  )
+                  setPassword("")
+                  setConfirmation("")
+                  setMode("signin")
+                  setMessage(
+                    "Registration submitted. The owner can review your details under Account requests. Wait for approval, and confirm your email if Supabase sends a confirmation. Already registered? Sign in or use Forgot password.",
+                  )
+                } else if (mode === "forgot") {
+                  await requestPasswordReset(supabase.auth, email)
+                  setMessage(
+                    "If this email has an account, a password-reset email has been requested. Check your inbox and spam folder. Resetting a password does not bypass owner approval.",
+                  )
+                } else {
+                  const { error } = await supabase.auth.signInWithPassword({
+                    email: normalizeAdminEmail(email),
+                    password,
+                  })
+                  if (error) {
+                    setNeedsConfirmation(error.code === "email_not_confirmed")
+                    throw new Error(error.message)
+                  }
+                  setNeedsConfirmation(false)
+                  const result = await onAuthenticated()
+                  if (!result.ok)
+                    throw new Error(
+                      result.error ??
+                        "Your account is awaiting owner approval.",
+                    )
+                  setPassword("")
+                }
+              })
+            }}
+          >
+            <Div className="auth-form-symbol">
+              <Icon name="shield" />
+            </Div>
+            <P className="admin-eyebrow">
+              CLUB DASHBOARD{" "}
+              <Span className="auth-access-label">MEMBER ACCESS</Span>
+            </P>
+            <H2 ref={headingRef} tabIndex={-1}>
+              {mode === "signup"
+                ? "Request an account."
+                : mode === "forgot"
+                  ? "Forgot your password?"
+                  : "Welcome back."}
+            </H2>
+            <P className="admin-muted">
+              {mode === "signup"
+                ? "Tell us who you are. The owner will review your request before you can enter."
+                : mode === "forgot"
+                  ? "Enter the email you used when creating your account."
+                  : "Use the email and password you registered with. New accounts need owner approval."}
+            </P>
+            {mode === "signup" && (
+              <>
+                <Label className="admin-field">
+                  <Span>Full name</Span>
+                  <Input
+                    required
+                    maxLength={100}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </Label>
+                <Label className="admin-field">
+                  <Span>Matric ID</Span>
+                  <Input
+                    required
+                    maxLength={40}
+                    value={matricId}
+                    placeholder="e.g. EB253022"
+                    onChange={(event) => setMatricId(event.target.value)}
+                  />
+                </Label>
+                <Label className="admin-field">
+                  <Span>Batch</Span>
+                  <Input
+                    required
+                    maxLength={50}
+                    value={batch}
+                    placeholder="e.g. 26th"
+                    onChange={(event) => setBatch(event.target.value)}
+                  />
+                </Label>
+              </>
+            )}
+            <Label className="admin-field">
+              <Span>Email</Span>
+              <Input
+                required
+                type="email"
+                maxLength={250}
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </Label>
+            {mode !== "forgot" && (
+              <PasswordField
+                value={password}
+                onChange={setPassword}
+                autoComplete={
+                  mode === "signup" ? "new-password" : "current-password"
+                }
+              />
+            )}
+            {mode === "signup" && (
+              <>
+                <PasswordField
+                  id="confirm-password"
+                  label="Confirm password"
+                  value={confirmation}
+                  onChange={setConfirmation}
+                  autoComplete="new-password"
+                />
+                <P className="admin-muted">
+                  Use at least 8 characters. Your password is managed by
+                  Supabase Auth and is never shown to the owner. Profile details
+                  are self-reported and subject to review.
+                </P>
+              </>
+            )}
+            <Button
+              type="submit"
+              className="admin-btn primary block"
+              disabled={busy}
+            >
+              {busy
+                ? "Please wait…"
+                : mode === "signup"
+                  ? "Create account & request approval"
+                  : mode === "forgot"
+                    ? "Send password-reset email"
+                    : "Sign in"}
+            </Button>
+            {message && (
+              <Div
+                className={`admin-status ${failed ? "error" : "success"}`}
+                role="status"
+              >
+                {message}
+              </Div>
+            )}
+            {mode === "signin" && (
+              <Button
+                type="button"
+                className="admin-link"
+                disabled={busy}
+                onClick={() => changeMode("forgot")}
+              >
+                Forgot password?
+              </Button>
+            )}
+            {needsConfirmation && (
+              <Button
+                type="button"
+                className="admin-btn ghost block"
+                disabled={busy}
+                onClick={() =>
+                  void perform(async () => {
+                    const { error } = await supabase.auth.resend({
+                      type: "signup",
+                      email: normalizeAdminEmail(email),
+                      options: { emailRedirectTo: adminSignInUrl },
+                    })
+                    if (error) throw new Error(error.message)
+                    setMessage(
+                      "Confirmation email requested. Check your inbox and spam folder.",
+                    )
+                  })
+                }
+              >
+                Resend confirmation email
+              </Button>
+            )}
+            <Div className="admin-divider">
+              <Span>
+                {mode === "signin" ? "New here?" : "Already have an account?"}
+              </Span>
+            </Div>
             <Button
               type="button"
               className="admin-btn ghost block"
               disabled={busy}
               onClick={() =>
-                void perform(async () => {
-                  const { error } = await supabase.auth.resend({
-                    type: "signup",
-                    email: normalizeAdminEmail(email),
-                    options: { emailRedirectTo: adminSignInUrl },
-                  })
-                  if (error) throw new Error(error.message)
-                  setMessage(
-                    "Confirmation email requested. Check your inbox and spam folder.",
-                  )
-                })
+                changeMode(mode === "signin" ? "signup" : "signin")
               }
             >
-              Resend confirmation email
+              {mode === "signin" ? "Create account" : "Back to sign in"}
             </Button>
-          )}
-          <Div className="admin-divider">
-            <Span>
-              {mode === "signin" ? "New here?" : "Already have an account?"}
-            </Span>
-          </Div>
-          <Button
-            type="button"
-            className="admin-btn ghost block"
-            disabled={busy}
-            onClick={() => changeMode(mode === "signin" ? "signup" : "signin")}
-          >
-            {mode === "signin" ? "Create account" : "Back to sign in"}
-          </Button>
-          <P className="auth-security-note">
-            <Icon name="shield" /> Secure sign-in. Owner-approved access.
-          </P>
-        </Form>
+            <P className="auth-security-note">
+              <Icon name="shield" /> Secure sign-in. Owner-approved access.
+            </P>
+          </Form>
+        </Div>
         <P className="auth-form-footer">
           Economics & Banking Club <Span>·</Span> IIUC
         </P>

@@ -5,6 +5,9 @@ import ActivityLog from "./admin/ActivityLog"
 import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
 import ProjectDownload from "./admin/ProjectDownload"
+import FacebookPhotoLibrary, { ActivityGalleryEditor } from "./admin/FacebookPhotoLibrary"
+import { appendActivityPhoto } from "./admin/facebookArchive"
+import activityPhotos from "./activityMedia"
 import AdminControls from "./AdminControls"
 import ThemeToggle from "./components/ThemeToggle"
 import {
@@ -657,7 +660,7 @@ export default function AdminPage() {
   }
 
   const save = async () => {
-    if (busy) return
+    if (busy || pendingUploads > 0) return
     const submitted = structuredClone(content)
     setBusy(true)
     notify("Saving changes…")
@@ -751,10 +754,15 @@ export default function AdminPage() {
       }),
     }))
   const setActivityImage = (id: string, url: string) =>
-    setContent((current) => ({
-      ...current,
-      activityImages: { ...current.activityImages, [id]: url },
-    }))
+    setContent((current) => {
+      const activityGalleries = { ...current.activityGalleries }
+      delete activityGalleries[id]
+      return {
+        ...current,
+        activityImages: { ...current.activityImages, [id]: url },
+        activityGalleries,
+      }
+    })
   const updatePerson = (slug: string, index: number, patch: Partial<Person>) =>
     setContent((current) => ({
       ...current,
@@ -1289,7 +1297,14 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="ACTIVITIES"
               title="Activity photos"
-              description="Shown at the top of each activity card. Leave empty to use the default photo."
+              description="Scan and review official Facebook photos, then build a gallery for each activity. A new single-image override replaces that activity's gallery. Save changes to publish."
+            />
+            <FacebookPhotoLibrary
+              request={request}
+              content={content}
+              disabled={busy}
+              onPending={change => setPendingUploads(count => Math.max(0, count + change))}
+              onAdd={(id, photo) => setContent(current => appendActivityPhoto(current, id, photo))}
             />
             <div className="admin-people">
               {activities.map((activity) => (
@@ -1304,6 +1319,22 @@ export default function AdminPage() {
                         setActivityImage(activity.id, url),
                       )
                     }
+                  />
+                  <ActivityGalleryEditor
+                    activity={activity}
+                    photos={activityPhotos(activity, content.activityImages?.[activity.id], content.activityGalleries?.[activity.id])}
+                    disabled={busy || pendingUploads > 0}
+                    onChange={photos => setContent(current => ({
+                      ...current,
+                      activityGalleries: { ...current.activityGalleries, [activity.id]: photos },
+                    }))}
+                    onReset={() => setContent(current => {
+                      const activityGalleries = { ...current.activityGalleries }
+                      const activityImages = { ...current.activityImages }
+                      delete activityGalleries[activity.id]
+                      delete activityImages[activity.id]
+                      return { ...current, activityGalleries, activityImages }
+                    })}
                   />
                 </div>
               ))}
@@ -2054,7 +2085,7 @@ export default function AdminPage() {
                 type="button"
                 className="admin-btn ghost"
                 onClick={discard}
-                disabled={busy}
+                disabled={busy || pendingUploads > 0}
               >
                 Discard
               </button>
@@ -2063,7 +2094,7 @@ export default function AdminPage() {
               type="button"
               className="admin-btn primary"
               onClick={save}
-              disabled={busy || !dirty}
+              disabled={busy || pendingUploads > 0 || !dirty}
             >
               {busy ? (
                 <>

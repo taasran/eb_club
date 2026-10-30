@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { serverUrl, publicAnonKey } from "../supabase"
 import EconomicsBackdrop from "../EconomicsBackdrop"
 import EconomicsLoader from "../EconomicsLoader"
-import useSiteContent from "../useSiteContent"
+import { useSiteContentState } from "../useSiteContent"
 import AdminControls from "../AdminControls"
 import Icon from "../components/Icon"
 import ThemeToggle from "../components/ThemeToggle"
@@ -10,6 +10,8 @@ import type { ManagedExecutive } from "../components/ExecutiveCard"
 import ExecutiveShowcase from "../components/ExecutiveShowcase"
 import LegacySlideshow from "../components/LegacySlideshow"
 import FacebookUpdates from "../components/FacebookUpdates"
+import ManagedImage from "../components/ManagedImage"
+import ActivityGallery from "../components/ActivityGallery"
 import { currentClubTeam, type ClubEvent } from "../contentClient"
 import {
   committee,
@@ -35,7 +37,8 @@ export default function HomePage() {
   const [ambientPaused, setAmbientPaused] = useState(false)
   const [welcomeExpanded, setWelcomeExpanded] = useState(false)
   const [openMilestone, setOpenMilestone] = useState<number | null>(0)
-  const managedContent = useSiteContent()
+  const { content: managedContent, status: contentStatus } =
+    useSiteContentState()
   const displayedExecutives: ManagedExecutive[] =
     managedContent.executives ??
     committee.map(([designation]) => ({ designation }))
@@ -141,9 +144,7 @@ export default function HomePage() {
     window.location.hostname !== "ebclubiiuc.pages.dev"
 
   return (
-    <div
-      className={ambientPaused ? "site-shell motion-paused" : "site-shell"}
-    >
+    <div className={ambientPaused ? "site-shell motion-paused" : "site-shell"}>
       <EconomicsBackdrop />
       {isPreviewHost && (
         <div className="topline">
@@ -350,13 +351,17 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual">
-            <img
+            <ManagedImage
               className="campus-image"
-              src={
-                managedContent.campusImage ??
-                "https://images.unsplash.com/photo-1638636214032-581196ffd400?auto=format&fit=crop&w=1400&q=85"
+              src={managedContent.campusImage?.trim()}
+              pending={contentStatus === "loading"}
+              eager
+              alt="Published campus photograph of International Islamic University Chittagong"
+              placeholder={
+                contentStatus === "error"
+                  ? "Campus photo is temporarily unavailable."
+                  : "Campus photo will be added soon."
               }
-              alt="A green university campus with academic buildings, illustrating campus life"
             />
             <div className="image-shade" />
             <div className="hero-club-seal !bg-transparent">
@@ -450,13 +455,13 @@ export default function HomePage() {
             >
               <div>
                 <p>
-                  A new executive committee is generally formed at the
-                  beginning of each year, with each committee serving a
-                  one-year term. Throughout the year, EB Club organizes
-                  departmental tours, cricket and football tournaments,
-                  research and debate workshops, industrial visits, health
-                  camps, leadership development programmes, and other
-                  academic, cultural, and extracurricular events.
+                  A new executive committee is generally formed at the beginning
+                  of each year, with each committee serving a one-year term.
+                  Throughout the year, EB Club organizes departmental tours,
+                  cricket and football tournaments, research and debate
+                  workshops, industrial visits, health camps, leadership
+                  development programmes, and other academic, cultural, and
+                  extracurricular events.
                 </p>
                 <p>
                   Among the most remarkable initiatives of EB Club are EB Day
@@ -467,15 +472,13 @@ export default function HomePage() {
                 <p>
                   Beyond organizing events, EB Club actively supports
                   departmental activities and works closely with students,
-                  faculty members, and the department to create a more
-                  engaging, supportive, and opportunity-driven academic
-                  environment.
+                  faculty members, and the department to create a more engaging,
+                  supportive, and opportunity-driven academic environment.
                 </p>
                 <p>
-                  As we move forward, our commitment remains the same: to
-                  serve our department, empower our students, and build a
-                  stronger future for the Economics and Banking community at
-                  IIUC.
+                  As we move forward, our commitment remains the same: to serve
+                  our department, empower our students, and build a stronger
+                  future for the Economics and Banking community at IIUC.
                 </p>
                 <p className="welcome-signoff">
                   — Executive Committee, EB Club IIUC
@@ -621,19 +624,15 @@ export default function HomePage() {
                 )
                 .map((item) => (
                   <article className="activity-card" key={item.id}>
-                    <div className="activity-photo">
-                      <img
-                        src={
-                          managedContent.activityImages?.[item.id] || item.image
-                        }
-                        alt={item.alt}
-                        loading="lazy"
-                      />
-                      <span className="activity-photo-label">
-                        <Icon name={item.icon} />
-                        {item.category}
-                      </span>
-                    </div>
+                    <ActivityGallery
+                      key={`${item.id}:${JSON.stringify(managedContent.activityGalleries?.[item.id] ?? managedContent.activityImages?.[item.id] ?? "")}`}
+                      activity={item}
+                      publishedImage={managedContent.activityImages?.[item.id]}
+                      publishedGallery={
+                        managedContent.activityGalleries?.[item.id]
+                      }
+                      pending={contentStatus === "loading"}
+                    />
                     <div className="card-category">{item.label}</div>
                     <h3>{item.title}</h3>
                     <p>{item.text}</p>
@@ -671,8 +670,8 @@ export default function HomePage() {
             <ol className="legacy-timeline">
               {displayedLegacy.map((milestone, index) => {
                 const open = openMilestone === index
-                const highlights = (milestone.highlights ?? []).filter(
-                  (item) => item.trim(),
+                const highlights = (milestone.highlights ?? []).filter((item) =>
+                  item.trim(),
                 )
                 return (
                   <li
@@ -688,9 +687,7 @@ export default function HomePage() {
                           className="legacy-toggle"
                           aria-expanded={open}
                           aria-controls={`legacy-panel-${index}`}
-                          onClick={() =>
-                            setOpenMilestone(open ? null : index)
-                          }
+                          onClick={() => setOpenMilestone(open ? null : index)}
                         >
                           <span>{milestone.title}</span>
                           <span className="legacy-toggle-hint">
@@ -705,7 +702,10 @@ export default function HomePage() {
                         inert={!open}
                       >
                         <div className="legacy-panel-inner">
-                          <LegacySlideshow milestone={milestone} active={open && !ambientPaused} />
+                          <LegacySlideshow
+                            milestone={milestone}
+                            active={open && !ambientPaused}
+                          />
                           <div className="legacy-details">
                             {milestone.text && <p>{milestone.text}</p>}
                             {highlights.length > 0 && (
@@ -821,7 +821,11 @@ export default function HomePage() {
               Meet the leadership of our club.
             </p>
           </div>
-          <ExecutiveShowcase profiles={team.executives} leaders={team.clubLeadership} paused={ambientPaused} />
+          <ExecutiveShowcase
+            profiles={team.executives}
+            leaders={team.clubLeadership}
+            paused={ambientPaused}
+          />
         </section>
 
         <section

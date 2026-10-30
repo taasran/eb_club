@@ -21,6 +21,8 @@ const AdminControls = {
   Em: "em",
   Details: "details",
   Summary: "summary",
+  Select: "select",
+  Option: "option",
 } as const
 
 export default AdminControls

@@ -66,9 +66,14 @@ const contentJs = ts.transpileModule(
     },
   },
 ).outputText
-const { readContent, publishContent, contentSnapshot, currentClubTeam, legacyPhotos, maxLegacyPhotos } = await import(
-  write("contentClient", contentJs)
-)
+const {
+  readContent,
+  publishContent,
+  contentSnapshot,
+  currentClubTeam,
+  legacyPhotos,
+  maxLegacyPhotos,
+} = await import(write("contentClient", contentJs))
 const fixture = {
   heroTitle: "Our updated club",
   heroDescription: "Saved introduction",
@@ -94,14 +99,24 @@ const originalFetch = globalThis.fetch
 const json = (value, status = 200) =>
   new Response(JSON.stringify(value), { status })
 try {
-  const oldProfiles = Array.from({ length: 5 }, (_, index) => ({ name: `Person ${index + 1}` }))
+  const oldProfiles = Array.from({ length: 5 }, (_, index) => ({
+    name: `Person ${index + 1}`,
+  }))
   const splitTeam = currentClubTeam(oldProfiles)
   assert.deepEqual(splitTeam.clubLeadership, oldProfiles.slice(0, 3))
   assert.deepEqual(splitTeam.executives, oldProfiles.slice(3))
-  assert.deepEqual([...splitTeam.clubLeadership, ...splitTeam.executives], oldProfiles)
-  assert.deepEqual(currentClubTeam(oldProfiles, []), { clubLeadership: [], executives: oldProfiles })
+  assert.deepEqual(
+    [...splitTeam.clubLeadership, ...splitTeam.executives],
+    oldProfiles,
+  )
+  assert.deepEqual(currentClubTeam(oldProfiles, []), {
+    clubLeadership: [],
+    executives: oldProfiles,
+  })
   assert.deepEqual(currentClubTeam([], oldProfiles).clubLeadership, oldProfiles)
-  const { moveTeamProfile, maxTeamProfiles } = await import(compile("admin/teamTransfer"))
+  const { moveTeamProfile, maxTeamProfiles } = await import(
+    compile("admin/teamTransfer")
+  )
   const transferProfile = {
     ...fixture.executives[0],
     name: "Transfer member",
@@ -119,37 +134,103 @@ try {
     executives: [transferProfile, sameNameProfile],
   }
   const beforeTransfer = contentSnapshot(transferContent)
-  const movedToLeadership = moveTeamProfile(transferContent, "executives", transferProfile)
+  const movedToLeadership = moveTeamProfile(
+    transferContent,
+    "executives",
+    transferProfile,
+  )
   assert.deepEqual(movedToLeadership.executives, [sameNameProfile])
-  assert.deepEqual(movedToLeadership.clubLeadership, [existingLeader, transferProfile])
+  assert.deepEqual(movedToLeadership.clubLeadership, [
+    existingLeader,
+    transferProfile,
+  ])
   assert.equal(movedToLeadership.clubLeadership.at(-1), transferProfile)
-  assert.equal(contentSnapshot(transferContent), beforeTransfer, "Moving never mutates the input draft.")
+  assert.equal(
+    contentSnapshot(transferContent),
+    beforeTransfer,
+    "Moving never mutates the input draft.",
+  )
   assert.equal(movedToLeadership.leadership, transferContent.leadership)
-  assert.equal(moveTeamProfile(movedToLeadership, "executives", transferProfile), movedToLeadership, "A stale click cannot move another member.")
-  assert.equal(moveTeamProfile(transferContent, "executives", { ...transferProfile }), transferContent, "Select by object identity, not by name.")
-  const movedBack = moveTeamProfile(movedToLeadership, "clubLeadership", transferProfile)
+  assert.equal(
+    moveTeamProfile(movedToLeadership, "executives", transferProfile),
+    movedToLeadership,
+    "A stale click cannot move another member.",
+  )
+  assert.equal(
+    moveTeamProfile(transferContent, "executives", { ...transferProfile }),
+    transferContent,
+    "Select by object identity, not by name.",
+  )
+  const movedBack = moveTeamProfile(
+    movedToLeadership,
+    "clubLeadership",
+    transferProfile,
+  )
   assert.deepEqual(movedBack.executives, [sameNameProfile, transferProfile])
   assert.deepEqual(movedBack.clubLeadership, [existingLeader])
-  const emptyLeadership = moveTeamProfile(movedBack, "clubLeadership", existingLeader)
+  const emptyLeadership = moveTeamProfile(
+    movedBack,
+    "clubLeadership",
+    existingLeader,
+  )
   assert.deepEqual(emptyLeadership.clubLeadership, [])
-  assert.deepEqual(currentClubTeam(emptyLeadership.executives, emptyLeadership.clubLeadership).clubLeadership, [])
+  assert.deepEqual(
+    currentClubTeam(emptyLeadership.executives, emptyLeadership.clubLeadership)
+      .clubLeadership,
+    [],
+  )
   const fullLeadership = {
     ...transferContent,
-    clubLeadership: Array.from({ length: maxTeamProfiles }, () => ({ ...existingLeader })),
+    clubLeadership: Array.from({ length: maxTeamProfiles }, () => ({
+      ...existingLeader,
+    })),
   }
-  assert.equal(moveTeamProfile(fullLeadership, "executives", transferProfile), fullLeadership, "Never remove a profile when the destination is full.")
+  assert.equal(
+    moveTeamProfile(fullLeadership, "executives", transferProfile),
+    fullLeadership,
+    "Never remove a profile when the destination is full.",
+  )
   const fullExecutives = {
     ...transferContent,
-    executives: Array.from({ length: maxTeamProfiles }, () => ({ ...sameNameProfile })),
+    executives: Array.from({ length: maxTeamProfiles }, () => ({
+      ...sameNameProfile,
+    })),
   }
-  assert.equal(moveTeamProfile(fullExecutives, "clubLeadership", existingLeader), fullExecutives)
-  const legacyTeam = Array.from({ length: 5 }, (_, index) => ({ ...transferProfile, name: `Legacy ${index}` }))
-  const legacyMoved = moveTeamProfile({ ...fixture, executives: legacyTeam }, "executives", legacyTeam[3])
-  assert.deepEqual(legacyMoved.clubLeadership, [...legacyTeam.slice(0, 3), legacyTeam[3]])
+  assert.equal(
+    moveTeamProfile(fullExecutives, "clubLeadership", existingLeader),
+    fullExecutives,
+  )
+  const legacyTeam = Array.from({ length: 5 }, (_, index) => ({
+    ...transferProfile,
+    name: `Legacy ${index}`,
+  }))
+  const legacyMoved = moveTeamProfile(
+    { ...fixture, executives: legacyTeam },
+    "executives",
+    legacyTeam[3],
+  )
+  assert.deepEqual(legacyMoved.clubLeadership, [
+    ...legacyTeam.slice(0, 3),
+    legacyTeam[3],
+  ])
   assert.deepEqual(legacyMoved.executives, [legacyTeam[4]])
-  assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg" }), ["https://example.com/old.jpg"])
-  assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg", images: [] }), [])
-  assert.equal(legacyPhotos({ image: "", images: Array.from({ length: 16 }, (_, i) => `https://example.com/${i}.jpg`) }).length, maxLegacyPhotos)
+  assert.deepEqual(legacyPhotos({ image: "https://example.com/old.jpg" }), [
+    "https://example.com/old.jpg",
+  ])
+  assert.deepEqual(
+    legacyPhotos({ image: "https://example.com/old.jpg", images: [] }),
+    [],
+  )
+  assert.equal(
+    legacyPhotos({
+      image: "",
+      images: Array.from(
+        { length: 16 },
+        (_, i) => `https://example.com/${i}.jpg`,
+      ),
+    }).length,
+    maxLegacyPhotos,
+  )
   const {
     adminSignInUrl,
     passwordResetUrl,
@@ -333,14 +414,16 @@ try {
 
   const facebookClient = await import(compile("facebookClient"))
   const facebookFixture = {
-    posts: [{
-      id: "451695514683833_123",
-      message: "Our latest campus story.",
-      createdAt: "2026-10-20T10:00:00Z",
-      url: "https://www.facebook.com/451695514683833/posts/123",
-      image: "https://scontent.example.fbcdn.net/story.jpg",
-      mediaType: "image",
-    }],
+    posts: [
+      {
+        id: "451695514683833_123",
+        message: "Our latest campus story.",
+        createdAt: "2026-10-20T10:00:00Z",
+        url: "https://www.facebook.com/451695514683833/posts/123",
+        image: "https://scontent.example.fbcdn.net/story.jpg",
+        mediaType: "image",
+      },
+    ],
     pageUrl: facebookClient.facebookPageUrl,
     updatedAt: "2026-10-20T10:00:00Z",
     stale: false,
@@ -351,7 +434,10 @@ try {
     assert.equal(options.cache, "no-store")
     return json(facebookFixture)
   }
-  assert.deepEqual(await facebookClient.readFacebookFeed("https://test.invalid", "public-key"), facebookFixture)
+  assert.deepEqual(
+    await facebookClient.readFacebookFeed("https://test.invalid", "public-key"),
+    facebookFixture,
+  )
   const legacyFacebookFixture = {
     ...facebookFixture,
     posts: facebookFixture.posts.map(({ mediaType, ...post }) => post),
@@ -361,25 +447,54 @@ try {
     await facebookClient.readFacebookFeed("https://test.invalid", "public-key"),
     facebookFixture,
   )
-  globalThis.fetch = async () => json({ error: "upstream-private-details" }, 503)
-  await assert.rejects(facebookClient.readFacebookFeed("", ""), /temporarily unavailable/)
+  globalThis.fetch = async () =>
+    json({ error: "upstream-private-details" }, 503)
+  await assert.rejects(
+    facebookClient.readFacebookFeed("", ""),
+    /temporarily unavailable/,
+  )
   for (const changes of [
     { posts: null },
     { updatedAt: "invalid" },
     { pageUrl: "javascript:alert(1)" },
-    { posts: [{ ...facebookFixture.posts[0], url: "https://attacker.invalid" }] },
-    { posts: [{ ...facebookFixture.posts[0], image: "https://attacker.invalid" }] },
-    { posts: [{ ...facebookFixture.posts[0], url: "https://www.facebook.com/post?access_token=private" }] },
+    {
+      posts: [{ ...facebookFixture.posts[0], url: "https://attacker.invalid" }],
+    },
+    {
+      posts: [
+        { ...facebookFixture.posts[0], image: "https://attacker.invalid" },
+      ],
+    },
+    {
+      posts: [
+        {
+          ...facebookFixture.posts[0],
+          url: "https://www.facebook.com/post?access_token=private",
+        },
+      ],
+    },
     { posts: [{ ...facebookFixture.posts[0], mediaType: "audio" }] },
   ]) {
     globalThis.fetch = async () => json({ ...facebookFixture, ...changes })
-    await assert.rejects(facebookClient.readFacebookFeed("", ""), /could not be loaded/)
+    await assert.rejects(
+      facebookClient.readFacebookFeed("", ""),
+      /could not be loaded/,
+    )
   }
-  const facebookHook = write("facebookHook", "export default function useFacebookFeed() { return globalThis.__facebookFixture; }")
-  const { default: FacebookUpdates } = await import(compile("components/FacebookUpdates", {
-    "src/useFacebookFeed.ts": facebookHook,
-  }))
-  globalThis.__facebookFixture = { feed: facebookFixture, loading: false, failed: false }
+  const facebookHook = write(
+    "facebookHook",
+    "export default function useFacebookFeed() { return globalThis.__facebookFixture; }",
+  )
+  const { default: FacebookUpdates } = await import(
+    compile("components/FacebookUpdates", {
+      "src/useFacebookFeed.ts": facebookHook,
+    })
+  )
+  globalThis.__facebookFixture = {
+    feed: facebookFixture,
+    loading: false,
+    failed: false,
+  }
   let facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
   assert.match(facebookHtml, /Our latest campus story/)
   assert.match(facebookHtml, /Read on Facebook/)
@@ -398,15 +513,42 @@ try {
   facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
   assert.match(facebookHtml, /facebook\.com\/plugins\/video\.php/)
   assert.match(facebookHtml, /allowFullScreen/)
-  globalThis.__facebookFixture = { feed: { ...facebookFixture, stale: true }, loading: false, failed: false }
-  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /last available updates/)
-  globalThis.__facebookFixture = { feed: { ...facebookFixture, posts: [] }, loading: false, failed: false }
-  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /no recent posts/)
+  globalThis.__facebookFixture = {
+    feed: { ...facebookFixture, stale: true },
+    loading: false,
+    failed: false,
+  }
+  assert.match(
+    renderToStaticMarkup(createElement(FacebookUpdates)),
+    /last available updates/,
+  )
+  globalThis.__facebookFixture = {
+    feed: { ...facebookFixture, posts: [] },
+    loading: false,
+    failed: false,
+  }
+  assert.match(
+    renderToStaticMarkup(createElement(FacebookUpdates)),
+    /no recent posts/,
+  )
   globalThis.__facebookFixture = { feed: null, loading: false, failed: true }
-  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /temporarily unavailable/)
+  assert.match(
+    renderToStaticMarkup(createElement(FacebookUpdates)),
+    /temporarily unavailable/,
+  )
   globalThis.__facebookFixture = { feed: null, loading: true, failed: false }
-  assert.match(renderToStaticMarkup(createElement(FacebookUpdates)), /Loading the latest club updates/)
-  globalThis.__facebookFixture = { feed: { ...facebookFixture, posts: [{ ...facebookFixture.posts[0], message: "", image: null }] }, loading: false, failed: false }
+  assert.match(
+    renderToStaticMarkup(createElement(FacebookUpdates)),
+    /Loading the latest club updates/,
+  )
+  globalThis.__facebookFixture = {
+    feed: {
+      ...facebookFixture,
+      posts: [{ ...facebookFixture.posts[0], message: "", image: null }],
+    },
+    loading: false,
+    failed: false,
+  }
   facebookHtml = renderToStaticMarkup(createElement(FacebookUpdates))
   assert.match(facebookHtml, /Another moment from our club/)
   assert.doesNotMatch(facebookHtml, /src="null"/)
@@ -418,15 +560,20 @@ try {
   )
   const hook = write(
     "hook",
-    "export default function useSiteContent() { return globalThis.__clubContentFixture; } export function announceContentUpdate() {}",
+    "export default function useSiteContent() { return globalThis.__clubContentFixture; } export function useSiteContentState() { return { content: globalThis.__clubContentFixture, status: globalThis.__clubContentStatus ?? 'ready' }; } export function announceContentUpdate() {}",
   )
   const router = write(
     "router",
     `
     import {createElement} from "${reactUrl}";
     export function createBrowserRouter(routes) { return { routes }; }
+    export function useParams() {
+      const [, , group, profileKey] = (globalThis.__clubTestRoute ?? "/").split("/");
+      return { group, profileKey };
+    }
     export function RouterProvider({router}) {
-      return createElement(router.routes.find(route => route.path === (globalThis.__clubTestRoute ?? "/")).Component);
+      const path = globalThis.__clubTestRoute ?? "/";
+      return createElement(router.routes.find(route => route.path === path || (path.startsWith("/profiles/") && route.path === "/profiles/:group/:profileKey")).Component);
     }
   `,
   )
@@ -474,6 +621,7 @@ try {
       return [value === true ? false : value, () => {}];
     }
     export function useEffect() {}
+    export { useRef } from "${reactUrl}";
   `,
   )
   const { default: SignInPage } = await import(
@@ -488,14 +636,26 @@ try {
   assert.match(signInHtml, /Forgot password/)
   assert.match(signInHtml, /Create account/)
   assert.match(signInHtml, /role="switch" aria-label="Night mode"/)
-  assert.match(signInHtml, /Pause ambient animation/)
-  assert.match(signInHtml, /auth-orbit-map/)
+  assert.doesNotMatch(
+    signInHtml,
+    /Pause ambient animation|Motion on|Motion off|auth-orbit-map/,
+  )
+  assert.match(signInHtml, /auth-market-graph/)
+  assert.match(signInHtml, /MARKET EQUILIBRIUM/)
+  assert.match(signInHtml, /QUANTITY/)
+  assert.match(signInHtml, /PRICE/)
+  assert.match(signInHtml, /NOT LIVE DATA/)
+  assert.match(
+    signInHtml,
+    /class="auth-mode-switch" role="group" aria-label="Account access"/,
+  )
   assert.doesNotMatch(signInHtml, /Email me a sign-in link/)
   const modeReact = write(
     "modeReact",
     `
     export function useState(initial) { return [initial === "signin" ? globalThis.__clubAuthMode : initial, () => {}]; }
     export function useEffect() {}
+    export { useRef } from "${reactUrl}";
   `,
   )
   const { default: AccountAuth } = await import(
@@ -510,6 +670,8 @@ try {
       onAuthenticated: async () => ({ ok: false }),
     }),
   )
+  assert.match(registrationHtml, /class="auth-access-stage" data-mode="signup"/)
+  assert.match(registrationHtml, /data-mode="signup" class="auth-access-card"/)
   for (const label of [
     "Full name",
     "Matric ID",
@@ -560,47 +722,353 @@ try {
   assert.match(html, /View Saved seminar event/)
   assert.match(html, /Saved President/)
   assert.match(html, /executive-card leadership-card profile-card/)
-  const { default: ExecutiveCard } = await import(compile("components/ExecutiveCard"))
-  const portraitCard = renderToStaticMarkup(createElement(ExecutiveCard, {
-    role: "General Secretary",
-    description: "Coordinating the club community.",
-    index: 0,
-    total: 1,
-    person: {
-      name: "Profile Member",
-      image: "https://example.com/portrait.jpg",
-      imageX: 35,
-      imageY: 25,
-      imageZoom: 1.2,
-      studentId: "EB42",
-      batch: "26",
-      quote: "Learning together.",
-    },
-  }))
-  assert.match(portraitCard, /<h3>Profile Member<\/h3><p class="profile-role">General Secretary<\/p>/)
+  assert.match(html, /src="https:\/\/example.com\/campus\.jpg"/)
+  assert.match(html, /fetchPriority="high"/i)
+  assert.doesNotMatch(html, /images\.unsplash\.com/)
+  assert.match(html, /\/images\/activities\/icbm-conference\.webp/)
+  assert.match(html, /\/images\/activities\/corporate-grooming\.webp/)
+  assert.match(html, /activity-photo-poster/)
+  assert.match(html, /Source: club Facebook post/)
+  assert.match(html, /Official industrial visits photo to be added/)
+  assert.match(html, /Official health camps photo to be added/)
+  assert(fs.existsSync("public/images/activities/icbm-conference.webp"))
+  assert(fs.existsSync("public/images/activities/corporate-grooming.webp"))
+  assert.match(html, /class="activity-gallery-controls"/)
+  assert.match(html, /Next seminars &amp; workshops photo/)
+  const { default: activityPhotos } = await import(compile("activityMedia"))
+  const { activities: activityDefinitions } = await import(compile("data/club"))
+  const workshopActivity = activityDefinitions.find(
+    (item) => item.id === "workshops",
+  )
+  const workshopPhotos = activityPhotos(workshopActivity)
+  assert.equal(workshopPhotos.length, 2)
+  assert.equal(workshopPhotos[0].kind, "photo")
+  assert.equal(workshopPhotos[1].kind, "poster")
+  assert.notEqual(workshopPhotos[0].source, workshopPhotos[1].source)
+  assert.equal(
+    activityPhotos({
+      ...workshopActivity,
+      additionalImages: [
+        ...workshopActivity.additionalImages,
+        workshopPhotos[0],
+        { ...workshopPhotos[0], src: "  " },
+      ],
+    }).length,
+    2,
+    "Blank and duplicate images do not become extra slides.",
+  )
+  const overridePhotos = activityPhotos(
+    workshopActivity,
+    " https://example.com/selected.jpg ",
+  )
+  assert.equal(overridePhotos.length, 1)
+  assert.equal(overridePhotos[0].src, "https://example.com/selected.jpg")
+  assert.equal(overridePhotos[0].source, undefined)
+  assert.deepEqual(
+    activityPhotos(workshopActivity, overridePhotos[0].src, []),
+    [],
+    "An explicit empty managed gallery does not resurrect defaults.",
+  )
+  const archiveClient = await import(compile("admin/facebookArchive"))
+  assert.equal(
+    archiveClient.suggestActivity(
+      "Workshop on corporate grooming and career development",
+    ),
+    "leadership",
+  )
+  assert.equal(
+    archiveClient.suggestActivity("Football tournament"),
+    "tournaments",
+  )
+  assert.equal(
+    archiveClient.suggestActivity("স্বাস্থ্য ক্যাম্প ও রক্তদান"),
+    "health-camp",
+  )
+  assert.equal(
+    archiveClient.suggestActivity("Department farewell memories"),
+    "",
+    "Ambiguous events are not mislabelled as tours or sports.",
+  )
+  const archivePost = {
+    id: "451695514683833_123",
+    message: "Research workshop",
+    createdAt: "2026-10-01T10:00:00Z",
+    url: "https://www.facebook.com/451695514683833/posts/123",
+    images: [],
+  }
+  const archivePhoto = {
+    id: `${archivePost.id}-${"a".repeat(24)}`,
+    url: "https://scontent.example.fbcdn.net/one.jpg",
+    preview: false,
+  }
+  const mergedArchive = archiveClient.mergeArchivePosts([archivePost], [
+    { ...archivePost, images: [archivePhoto, archivePhoto] },
+  ])
+  assert.equal(mergedArchive.length, 1)
+  assert.equal(mergedArchive[0].images.length, 1)
+  assert.equal(archivePost.images.length, 0)
+  const batch = {
+    posts: mergedArchive,
+    nextCursor: null,
+    complete: true,
+    partial: false,
+    postsScanned: 1,
+    requestsScanned: 2,
+    photosFound: 1,
+    warnings: [],
+  }
+  assert.equal(
+    (
+      await archiveClient.readArchive(
+        async () => Response.json(batch),
+        undefined,
+        new AbortController().signal,
+      )
+    ).complete,
+    true,
+  )
+  await assert.rejects(
+    archiveClient.readArchive(
+      async () => Response.json({ error: "Missing route" }, { status: 404 }),
+      undefined,
+      new AbortController().signal,
+    ),
+    /Deploy the updated Supabase backend/,
+  )
+  await assert.rejects(
+    archiveClient.readArchive(
+      async () =>
+        Response.json({
+          ...batch,
+          nextCursor: "https://graph.facebook.com/?access_token=private",
+        }),
+      undefined,
+      new AbortController().signal,
+    ),
+    /invalid/,
+  )
+  const importedPhoto = {
+    src: "https://storage.example.com/permanent.jpg",
+    alt: "Official workshop",
+    kind: "photo",
+    source: archivePost.url,
+  }
+  const importedDraft = archiveClient.appendActivityPhoto(
+    fixture,
+    "workshops",
+    importedPhoto,
+  )
+  assert.equal(importedDraft.activityGalleries.workshops.length, 3)
+  assert.equal(
+    importedDraft.activityGalleries.workshops.at(-1).src,
+    importedPhoto.src,
+  )
+  assert.equal(
+    fixture.activityGalleries,
+    undefined,
+    "Importing a photo never mutates the saved content.",
+  )
+  assert.equal(
+    archiveClient.appendActivityPhoto(
+      importedDraft,
+      "workshops",
+      importedPhoto,
+    ),
+    importedDraft,
+  )
+  assert.equal(
+    archiveClient.appendActivityPhoto(
+      importedDraft,
+      "not-an-activity",
+      importedPhoto,
+    ),
+    importedDraft,
+  )
+  assert.equal(
+    activityPhotos(
+      workshopActivity,
+      overridePhotos[0].src,
+      importedDraft.activityGalleries.workshops,
+    ).length,
+    3,
+    "A published gallery takes priority over the legacy cover field.",
+  )
+  const { default: FacebookPhotoLibrary } = await import(
+    compile("admin/FacebookPhotoLibrary")
+  )
+  const libraryHtml = renderToStaticMarkup(
+    createElement(FacebookPhotoLibrary, {
+      request: async () =>
+        assert.fail("The archive only reads after an explicit admin action."),
+      content: fixture,
+      disabled: false,
+      onAdd() {},
+      onPending() {},
+    }),
+  )
+  assert.match(libraryHtml, /Start new history scan/)
+  assert.match(libraryHtml, /Review before publishing/)
+  assert.match(libraryHtml, /Not complete/)
+  assert.equal(
+    activityPhotos(activityDefinitions.find((item) => item.id === "tours"))
+      .length,
+    0,
+  )
+  const activityGalleryReact = write(
+    "activityGalleryReact",
+    `
+    export function useState(initial) { return [initial === 0 ? globalThis.__activityPhotoIndex : initial, () => {}]; }
+    export { useRef } from "${reactUrl}";
+  `,
+  )
+  const { default: ActivityGallery } = await import(
+    compile("components/ActivityGallery", { react: activityGalleryReact })
+  )
+  globalThis.__activityPhotoIndex = 1
+  const secondPhotoHtml = renderToStaticMarkup(
+    createElement(ActivityGallery, { activity: workshopActivity }),
+  )
+  assert.match(secondPhotoHtml, /corporate-grooming\.webp/)
+  assert.match(secondPhotoHtml, /activity-photo-poster/)
+  assert.match(secondPhotoHtml, /122207414948536052/)
+  assert.match(secondPhotoHtml, /2 \/ 2/)
+  assert.doesNotMatch(
+    secondPhotoHtml,
+    /icbm-conference\.webp|122204199176536052/,
+    "Only the selected photo and its source are shown.",
+  )
+  const pendingGalleryHtml = renderToStaticMarkup(
+    createElement(ActivityGallery, {
+      activity: workshopActivity,
+      pending: true,
+    }),
+  )
+  assert.doesNotMatch(pendingGalleryHtml, /<img|<button|Source: club Facebook/)
+  const overrideGalleryHtml = renderToStaticMarkup(
+    createElement(ActivityGallery, {
+      activity: workshopActivity,
+      publishedImage: overridePhotos[0].src,
+    }),
+  )
+  assert.match(overrideGalleryHtml, /selected\.jpg/)
+  assert.doesNotMatch(
+    overrideGalleryHtml,
+    /<button|Source: club Facebook|icbm-conference\.webp/,
+  )
+  delete globalThis.__activityPhotoIndex
+  globalThis.__clubContentFixture = {}
+  globalThis.__clubContentStatus = "loading"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /Loading the latest photo/)
+  assert.doesNotMatch(html, /class="campus-image" src=|images\.unsplash\.com/)
+  assert.doesNotMatch(
+    html,
+    /src="\/images\/activities\//,
+    "Wait for published overrides before requesting fallback activity photos.",
+  )
+  globalThis.__clubContentStatus = "error"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /Campus photo is temporarily unavailable/)
+  assert.doesNotMatch(html, /images\.unsplash\.com|src=""/)
+  delete globalThis.__clubContentStatus
+  globalThis.__clubContentFixture = {
+    ...fixture,
+    activityImages: { leadership: "https://example.com/saved-leadership.jpg" },
+  }
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /src="https:\/\/example.com\/saved-leadership\.jpg"/)
+  assert.doesNotMatch(
+    html,
+    /corporate-grooming\.webp|122207414948536052/,
+    "Admin media must not inherit a different photo's Facebook attribution.",
+  )
+  globalThis.__clubContentFixture = fixture
+  html = renderToStaticMarkup(createElement(App))
+  const failedMediaReact = write(
+    "failedMediaReact",
+    `
+    export function useState() { return ["https://example.com/missing.jpg", () => {}]; }
+  `,
+  )
+  const { default: FailedMedia } = await import(
+    compile("components/ManagedImage", { react: failedMediaReact })
+  )
+  const failedMediaHtml = renderToStaticMarkup(
+    createElement(FailedMedia, {
+      src: "https://example.com/missing.jpg",
+      alt: "Published campus",
+      className: "campus-image",
+      eager: true,
+    }),
+  )
+  assert.match(failedMediaHtml, /Photo temporarily unavailable/)
+  assert.doesNotMatch(failedMediaHtml, /<img|images\.unsplash\.com/)
+  const { default: ExecutiveCard } = await import(
+    compile("components/ExecutiveCard")
+  )
+  const portraitCard = renderToStaticMarkup(
+    createElement(ExecutiveCard, {
+      role: "General Secretary",
+      description: "Coordinating the club community.",
+      index: 0,
+      total: 1,
+      person: {
+        name: "Profile Member",
+        image: "https://example.com/portrait.jpg",
+        imageX: 35,
+        imageY: 25,
+        imageZoom: 1.2,
+        studentId: "EB42",
+        batch: "26",
+        quote: "Learning together.",
+      },
+    }),
+  )
+  assert.match(
+    portraitCard,
+    /<h3>Profile Member<\/h3><p class="profile-role">General Secretary<\/p>/,
+  )
   assert.match(portraitCard, /object-position:35% 25%/)
   assert.match(portraitCard, /scale\(1\.2\)/)
   assert.match(portraitCard, /class="profile-portrait-stage"/)
   assert.match(portraitCard, /class="profile-club-seal" aria-hidden="true"/)
-  assert.doesNotMatch(portraitCard, /profile-edition|COMMITTEE · IIUC|LEADERSHIP · IIUC/)
-  const executiveLabelCard = renderToStaticMarkup(createElement(ExecutiveCard, {
-    role: "Executive Member",
-    description: "Supporting the club community.",
-    index: 3,
-    total: 4,
-    leadership: false,
-  }))
+  assert.doesNotMatch(
+    portraitCard,
+    /profile-edition|COMMITTEE · IIUC|LEADERSHIP · IIUC/,
+  )
+  const executiveLabelCard = renderToStaticMarkup(
+    createElement(ExecutiveCard, {
+      role: "Executive Member",
+      description: "Supporting the club community.",
+      index: 3,
+      total: 4,
+      leadership: false,
+    }),
+  )
   assert.match(executiveLabelCard, /Executives Economics &amp; Banking Club/)
   assert.doesNotMatch(executiveLabelCard, /profile-edition|COMMITTEE · IIUC/)
-  assert.match(portraitCard, /class="executive-reveal profile-quote"/)
-  assert.match(portraitCard, /<details class="profile-disclosure">/)
+  assert.match(portraitCard, /class="profile-open-link"/)
+  assert.match(portraitCard, /href="\/profiles\/leadership\/id-eb42"/)
+  assert.doesNotMatch(portraitCard, /<details class="profile-disclosure">/)
+  assert(
+    portraitCard.indexOf("<h3>Profile Member</h3>") <
+      portraitCard.indexOf('class="profile-registry"'),
+    "Capsule headers lead with the person's name, not the registry label.",
+  )
   assert.match(portraitCard, /View profile details for Profile Member/)
   assert.match(portraitCard, /View profile <svg/)
   assert.doesNotMatch(portraitCard, /Follow|followers/i)
   assert.match(portraitCard, /ID: EB42/)
   assert.match(portraitCard, /Batch: 26/)
-  assert.match(portraitCard.split('class="executive-info"')[1], /Learning together/)
-  assert.doesNotMatch(portraitCard.split('class="executive-info"')[0], /executive-reveal/)
+  assert.doesNotMatch(
+    portraitCard,
+    /Learning together/,
+    "Cards link to the profile rather than rendering saved quotes.",
+  )
+  assert.doesNotMatch(
+    portraitCard.split('class="executive-info"')[0],
+    /executive-reveal/,
+  )
   assert.doesNotMatch(html, /Executive slot 30/)
   assert.doesNotMatch(html, /Economics in a changing world/)
   assert.doesNotMatch(html, /Profile 5 \/ 30/)
@@ -624,7 +1092,9 @@ try {
     })),
   }
   html = renderToStaticMarkup(createElement(App))
-  const completeRoster = html.split("CLUB EXECUTIVES")[1].split("join-banner")[0]
+  const completeRoster = html
+    .split("CLUB EXECUTIVES")[1]
+    .split("join-banner")[0]
   assert(
     completeRoster,
     "The executive section must not disappear with only four profiles.",
@@ -633,25 +1103,40 @@ try {
     assert(!completeRoster.includes(`Leader ${index}`))
   assert.match(completeRoster, /Leader 4/)
   assert.match(completeRoster, /ID: EB4/)
-  assert.doesNotMatch(completeRoster, /<button|Pause auto-slide|Resume auto-slide/)
+  assert.doesNotMatch(
+    completeRoster,
+    /<button|Pause auto-slide|Resume auto-slide/,
+  )
 
   globalThis.__clubContentFixture = {
     ...fixture,
     clubLeadership: Array.from({ length: 5 }, (_, index) => ({
-      ...fixture.executives[0], name: `Featured Leader ${index + 1}`,
+      ...fixture.executives[0],
+      name: `Featured Leader ${index + 1}`,
     })),
     executives: [{ ...fixture.executives[0], name: "Independent Executive" }],
-    legacy: [{
-      year: "2025", title: "Programme gallery", text: "Our programme",
-      image: "https://example.com/cover.jpg",
-      images: Array.from({ length: 15 }, (_, index) => `https://example.com/programme-${index + 1}.jpg`),
-    }],
+    legacy: [
+      {
+        year: "2025",
+        title: "Programme gallery",
+        text: "Our programme",
+        image: "https://example.com/cover.jpg",
+        images: Array.from(
+          { length: 15 },
+          (_, index) => `https://example.com/programme-${index + 1}.jpg`,
+        ),
+      },
+    ],
   }
   html = renderToStaticMarkup(createElement(App))
-  const leadersOnly = html.split("CLUB LEADERSHIP")[1].split("CLUB EXECUTIVES")[0]
+  const leadersOnly = html
+    .split("CLUB LEADERSHIP")[1]
+    .split("CLUB EXECUTIVES")[0]
   assert.match(leadersOnly, /Featured Leader 5/)
   assert.doesNotMatch(leadersOnly, /Independent Executive/)
-  const executivesOnly = html.split("CLUB EXECUTIVES")[1].split("join-banner")[0]
+  const executivesOnly = html
+    .split("CLUB EXECUTIVES")[1]
+    .split("join-banner")[0]
   assert.match(executivesOnly, /Independent Executive/)
   assert.doesNotMatch(executivesOnly, /Featured Leader/)
   assert.match(html, /programme-15.jpg/)
@@ -672,22 +1157,214 @@ try {
   globalThis.__clubContentFixture = {
     ...emptyRoster,
     leadership: {
-      "former-presidents": [{
-        name: "Archived Member",
-        designation: "Former President",
-        session: "2024–2025",
-        image: "https://example.com/former-member.jpg",
-      }],
+      "former-presidents": [
+        {
+          name: "Archived Member",
+          designation: "Former President",
+          session: "2024–2025",
+          image: "https://example.com/former-member.jpg",
+        },
+      ],
     },
   }
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /archive-profile-card profile-card/)
   assert.doesNotMatch(html, /profile-edition/)
-  assert.match(html, /<h3>Archived Member<\/h3><p class="profile-role">Former President<\/p>/)
+  assert.match(
+    html,
+    /<h3>Archived Member<\/h3><p class="profile-role">Former President<\/p>/,
+  )
   assert.match(html, /2024–2025/)
   assert.match(html, /class="archive-profile-photo"/)
+  assert.match(html, /class="archive-profile-session"/)
+  assert.match(
+    html,
+    /href="\/profiles\/former-presidents\/archived-member-former-president-2024-2025"/,
+  )
+  const { profileDirectory, findProfile, profileHref } = await import(
+    compile("profileDirectory")
+  )
+  const profileFixture = {
+    ...fixture,
+    clubLeadership: [],
+    executives: [
+      {
+        name: "Profile Member",
+        designation: "General Secretary",
+        studentId: "EB42",
+        batch: "26",
+        image: "https://example.com/portrait.jpg",
+        imageX: 35,
+        imageY: 25,
+        imageZoom: 1.2,
+        quote: "Learning together.",
+      },
+    ],
+  }
+  const { default: roleQuote, roleSpeech } = await import(
+    compile("data/roleQuotes")
+  )
+  const mainRoles = [
+    "President",
+    "Vice President",
+    "General Secretary",
+    "Assistant General Secretary",
+    "Joint Secretary",
+    "Treasurer",
+    "Organizing Secretary",
+    "Executive Member",
+    "Faculty Advisor",
+  ]
+  assert.equal(
+    new Set(mainRoles.map(roleQuote)).size,
+    mainRoles.length,
+    "Each defined designation gets its own role inspiration.",
+  )
+  assert.equal(roleQuote("  VICE-PRESIDENT  "), roleQuote("Vice President"))
+  assert.equal(
+    roleQuote("Former General Secretary"),
+    roleQuote("General Secretary"),
+  )
+  assert.equal(roleQuote("Faculty Adviser"), roleQuote("Faculty Advisor"))
+  assert.equal(roleQuote(""), roleQuote("Executive Member"))
+  assert.match(roleQuote("Community Coordinator"), /Community Coordinator/)
+  assert.equal(new Set(mainRoles.map(roleSpeech)).size, mainRoles.length)
+  for (const designation of [
+    ...mainRoles,
+    "Former President",
+    "Community Coordinator",
+    "constructor",
+    "",
+  ]) {
+    const lines = roleSpeech(designation).split("\n")
+    assert.equal(
+      lines.length,
+      3,
+      `${designation || "Unspecified role"} gets a three-line speech.`,
+    )
+    assert(lines.every((line) => line.trim().length > 0))
+  }
+  assert.equal(roleSpeech("  VICE-PRESIDENT "), roleSpeech("Vice President"))
+  assert.equal(roleSpeech("Faculty Adviser"), roleSpeech("Faculty Advisor"))
+  assert.notEqual(roleSpeech("Former President"), roleSpeech("President"))
+  assert.equal(roleSpeech("Executive slot 07"), roleSpeech("Executive Member"))
+  let directory = profileDirectory(profileFixture)
+  assert.equal(
+    profileHref(profileFixture.executives[0], "executives", 0),
+    "/profiles/executives/id-eb42",
+  )
+  assert.equal(
+    findProfile(directory, "executives", "id-eb42").person,
+    profileFixture.executives[0],
+  )
+  assert.equal(findProfile(directory, "unknown", "id-eb42"), undefined)
+  assert.equal(findProfile(directory, "executives", "missing"), undefined)
+  assert.equal(
+    profileDirectory({ ...fixture, executives: [], clubLeadership: [] }).filter(
+      (entry) => ["leadership", "executives"].includes(entry.group),
+    ).length,
+    0,
+  )
+  directory = profileDirectory({
+    ...profileFixture,
+    executives: [],
+    clubLeadership: profileFixture.executives,
+  })
+  assert.equal(
+    findProfile(directory, "executives", "id-eb42").group,
+    "leadership",
+    "Shared links survive a transfer between current team sections.",
+  )
+  globalThis.__clubContentFixture = profileFixture
+  globalThis.__clubTestRoute = "/profiles/executives/id-eb42"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /class="member-poster"/)
+  assert.match(html, /<h1 id="member-name">Profile<span>Member<\/span><\/h1>/)
+  assert.match(html, /General Secretary/)
+  assert.match(html, /Student ID/)
+  assert.match(html, /EB42/)
+  assert.match(html, /Batch/)
+  assert.doesNotMatch(html, /Learning together/)
+  assert.match(html, /I believe clear communication builds trust/)
+  assert.match(html, /ROLE INSPIRATION/)
+  assert.match(html, /Clear communication turns shared plans into progress/)
+  assert.match(html, /IN THEIR WORDS/)
+  assert.match(html, /Suggested role-based message/)
+  assert.doesNotMatch(html, /Ideas\.|Into impact\./)
+  assert.match(html, /object-position:35% 25%/)
+  assert.match(html, /scale\(1\.2\)/)
+  assert.match(html, /CLUB AFFILIATION/)
+  assert.match(html, /Club contact, not a personal contact address/)
+  assert.match(html, /Copy profile link/)
+  assert.match(html, /role="switch" aria-label="Night mode"/)
+  assert.doesNotMatch(html, /followers|GPA|Phone number|Personal email/i)
+  globalThis.__clubContentFixture = {
+    ...profileFixture,
+    executives: [{ ...profileFixture.executives[0], quote: "   " }],
+  }
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /IN THEIR WORDS/)
+  assert.match(
+    html,
+    /I believe clear communication builds trust\.\nMy aim is to connect people and plans\.\nTogether, we can make every effort count\./,
+  )
+  assert.match(html, /Suggested role-based message/)
+  assert.doesNotMatch(html, /Learning together\.|ROLE AT A GLANCE/)
+  for (const designation of mainRoles) {
+    globalThis.__clubContentFixture = {
+      ...profileFixture,
+      executives: [{ ...profileFixture.executives[0], designation }],
+    }
+    html = renderToStaticMarkup(createElement(App))
+    assert(
+      html.includes(roleSpeech(designation)),
+      `${designation} shows its full speech even when a personal quote is saved.`,
+    )
+    assert.doesNotMatch(html, /Learning together/)
+    assert.match(html, /Suggested role-based message/)
+    assert.equal(
+      globalThis.__clubContentFixture.executives[0].quote,
+      "Learning together.",
+      "Display changes must not overwrite saved quotes.",
+    )
+  }
+  globalThis.__clubTestRoute = "/profiles/executives/missing"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /This profile is no longer listed/)
+  globalThis.__clubContentStatus = "loading"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /Opening the profile/)
+  assert.doesNotMatch(html, /This profile is no longer listed/)
+  globalThis.__clubContentStatus = "error"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /We couldn’t load this profile/)
+  assert.match(html, /Try again/)
+  delete globalThis.__clubContentStatus
+  globalThis.__clubContentFixture = {
+    ...emptyRoster,
+    leadership: {
+      "former-presidents": [
+        {
+          name: "Archived Member",
+          designation: "Former President",
+          session: "2024–2025",
+          image: "",
+        },
+      ],
+    },
+  }
+  globalThis.__clubTestRoute =
+    "/profiles/former-presidents/archived-member-former-president-2024-2025"
+  html = renderToStaticMarkup(createElement(App))
+  assert.match(html, /2024–2025/)
+  assert.match(html, /From our leadership archive/)
+  assert.match(html, /PORTRAIT TO BE ADDED/)
+  assert.doesNotMatch(html, /Student ID/)
+  assert.match(html, /I believe the value of leadership lies in service/)
+  assert.match(html, /Suggested role-based message/)
   globalThis.__clubContentFixture = emptyRoster
-  globalThis.__clubTestRoute = "/leadership/former-assistant-general-secretaries"
+  globalThis.__clubTestRoute =
+    "/leadership/former-assistant-general-secretaries"
   html = renderToStaticMarkup(createElement(App))
   assert.match(html, /Former Assistant General Secretaries/)
   globalThis.__clubTestRoute = "/leadership/committee-wise-archive"
@@ -789,20 +1466,42 @@ try {
   `,
   )
   const gallery = await import(
-    compile("components/LegacySlideshow", { react: galleryReact }),
+    compile("components/LegacySlideshow", { react: galleryReact })
   )
-  const milestone = { year: "2025", title: "Gallery", text: "", image: "", images: ["https://example.com/a.jpg", "https://example.com/b.jpg"] }
-  for (const pause of ["", "closed", "hover", "focus", "motion", "single", "empty"]) {
+  const milestone = {
+    year: "2025",
+    title: "Gallery",
+    text: "",
+    image: "",
+    images: ["https://example.com/a.jpg", "https://example.com/b.jpg"],
+  }
+  for (const pause of [
+    "",
+    "closed",
+    "hover",
+    "focus",
+    "motion",
+    "single",
+    "empty",
+  ]) {
     globalThis.__galleryState = 0
     globalThis.__galleryIndex = 0
     globalThis.__galleryPause = pause
     globalThis.__carouselEffects = []
     timers.length = 0
     gallery.default({
-      milestone: { ...milestone, images: pause === "single" ? milestone.images.slice(0, 1) : pause === "empty" ? [] : milestone.images },
+      milestone: {
+        ...milestone,
+        images:
+          pause === "single"
+            ? milestone.images.slice(0, 1)
+            : pause === "empty"
+              ? []
+              : milestone.images,
+      },
       active: pause !== "closed",
     })
-    const cleanups = globalThis.__carouselEffects.map(effect => effect())
+    const cleanups = globalThis.__carouselEffects.map((effect) => effect())
     assert.equal(timers.length, pause ? 0 : 1)
     if (!pause) {
       assert.equal(timers[0].delay, 3000)
@@ -818,7 +1517,7 @@ try {
       offscreen = false
       assert.equal(globalThis.__galleryIndex, 0)
     }
-    cleanups.forEach(cleanup => cleanup?.())
+    cleanups.forEach((cleanup) => cleanup?.())
   }
   delete globalThis.getComputedStyle
   // Exercise update subscriptions without a browser or an authenticated account.
@@ -838,7 +1537,12 @@ try {
   const fakeReact = write(
     "hookReact",
     `
-    export function useState(initial) { return [initial, value => globalThis.__clubHookValue = value]; }
+    export function useState(initial) {
+      return [initial, value => {
+        if (typeof initial === "string") globalThis.__clubHookStatus = value;
+        else globalThis.__clubHookValue = value;
+      }];
+    }
     export function useEffect(effect) { globalThis.__clubHookCleanup = effect(); }
   `,
   )
@@ -862,6 +1566,7 @@ try {
   await Promise.resolve()
   assert.equal(globalThis.__clubReads, 1)
   assert.deepEqual(globalThis.__clubHookValue, globalThis.__clubContentFixture)
+  assert.equal(globalThis.__clubHookStatus, "ready")
   window.dispatchEvent(new Event("focus"))
   sync.announceContentUpdate()
   const storage = new Event("storage")
@@ -885,36 +1590,49 @@ try {
   let facebookCleanup
   let facebookState
   let rejectFacebook = false
-  const feedReact = write("feedReact", `
+  const feedReact = write(
+    "feedReact",
+    `
     export function useState(initial) {
       globalThis.__facebookSetState(initial);
       return [initial, globalThis.__facebookSetState];
     }
     export function useEffect(effect) { globalThis.__facebookEffect(effect); }
-  `)
-  globalThis.__facebookSetState = update => { facebookState = typeof update === "function" ? update(facebookState) : update }
-  globalThis.__facebookEffect = effect => { facebookCleanup = effect() }
-  const feedApi = write("feedApi", `
+  `,
+  )
+  globalThis.__facebookSetState = (update) => {
+    facebookState =
+      typeof update === "function" ? update(facebookState) : update
+  }
+  globalThis.__facebookEffect = (effect) => {
+    facebookCleanup = effect()
+  }
+  const feedApi = write(
+    "feedApi",
+    `
     export const facebookRefreshInterval = 300000;
     export async function readFacebookFeed(...args) { return globalThis.__facebookRead(...args); }
-  `)
+  `,
+  )
   globalThis.__facebookRead = async (_url, _key, signal) => {
     facebookReads++
     facebookRequest = signal
     if (rejectFacebook) throw new Error("offline")
     return facebookFixture
   }
-  const { default: useFacebookFeed } = await import(compile("useFacebookFeed", {
-    react: feedReact,
-    "src/facebookClient.ts": feedApi,
-    "src/supabase.ts": supabase,
-  }))
+  const { default: useFacebookFeed } = await import(
+    compile("useFacebookFeed", {
+      react: feedReact,
+      "src/facebookClient.ts": feedApi,
+      "src/supabase.ts": supabase,
+    })
+  )
   useFacebookFeed()
-  await new Promise(resolve => setImmediate(resolve))
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(facebookReads, 1)
   assert.deepEqual(facebookState.feed, facebookFixture)
   window.dispatchEvent(new Event("focus"))
-  await new Promise(resolve => setImmediate(resolve))
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(facebookReads, 2)
   document.hidden = true
   tick()
@@ -922,7 +1640,7 @@ try {
   document.hidden = false
   rejectFacebook = true
   tick()
-  await new Promise(resolve => setImmediate(resolve))
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(facebookState.failed, true)
   assert.deepEqual(facebookState.feed, facebookFixture)
   facebookCleanup()
@@ -932,7 +1650,11 @@ try {
   assert.equal(tick, undefined)
   assert(facebookRequest instanceof AbortSignal)
   assert.equal(
-    (fs.readFileSync("index.html", "utf8").match(/name="google-site-verification"/g) ?? []).length,
+    (
+      fs
+        .readFileSync("index.html", "utf8")
+        .match(/name="google-site-verification"/g) ?? []
+    ).length,
     2,
     "Preserve both Google Search Console verification tags.",
   )

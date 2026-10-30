@@ -7,6 +7,7 @@ import { validContent, isOwner, canAccess, type Role } from "./validation.ts";
 import { describeContentChange, type ActivityEntry } from "./audit.ts";
 import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount, AccountAccessError } from "./account_access.ts";
 import { createFacebookFeed } from "./facebook.ts";
+import { createFacebookArchive, FacebookArchiveError } from "./facebook_archive.ts";
 
 const app = new Hono<{ Variables: { ownerEmail: string; role: Role; actorName: string } }>();
 const base = "/make-server-ad6cf477";
@@ -30,6 +31,7 @@ app.use("/*", bodyLimit({
 }));
 app.onError((error, c) => {
   if (error instanceof AccountAccessError) return c.json({ error: error.message }, error.status);
+  if (error instanceof FacebookArchiveError) return c.json({ error: error.message }, error.status);
   // Never send database details or credentials to the browser.
   console.error("Club API request failed:", error.message);
   return c.json({ error: "The server could not complete this request. Please try again." }, 500);
@@ -87,6 +89,45 @@ async function logActivity(c: { get(key: "ownerEmail" | "role" | "actorName"): s
     console.error("Activity log failed:", (error as Error).message);
   }
 }
+
+const facebookArchive = createFacebookArchive({
+  config: () => ({
+    pageId: Deno.env.get("FACEBOOK_PAGE_ID"),
+    token: Deno.env.get("FACEBOOK_PAGE_ACCESS_TOKEN"),
+  }),
+  cache: kv,
+  storeImage: async (bytes, contentType, filename) => {
+    const storage = db().storage;
+    const options = {
+      public: true,
+      fileSizeLimit: 5 * 1024 * 1024,
+      allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    };
+    const { data: existing } = await storage.getBucket(bucket);
+    if (!existing) {
+      const { error } = await storage.createBucket(bucket, options);
+      if (error && !(await storage.getBucket(bucket)).data) throw new Error("Image storage could not be prepared.");
+    } else if (!existing.allowed_mime_types?.includes("image/webp")) {
+      const { error } = await storage.updateBucket(bucket, options);
+      if (error) throw new Error("Image storage could not be updated.");
+    }
+    const { error } = await storage.from(bucket).upload(filename, bytes, { contentType, upsert: true });
+    if (error) throw new Error("The Facebook image could not be saved to club storage.");
+    return storage.from(bucket).getPublicUrl(filename).data.publicUrl;
+  },
+});
+
+// Both archive routes are behind the existing verified/approved admin middleware.
+app.get(`${base}/admin/facebook/history`, async (c) =>
+  c.json(await facebookArchive.read(c.get("ownerEmail"), c.req.query("cursor"))));
+
+app.post(`${base}/admin/facebook/import`, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (typeof body?.photoId !== "string") return c.json({ error: "Choose a scanned Facebook photo." }, 400);
+  const photo = await facebookArchive.importPhoto(body.photoId);
+  await logActivity(c, "Imported Facebook photo", "Activity photos", [body.photoId]);
+  return c.json({ photo });
+});
 
 app.get(`${base}/admin/activity`, async (c) => {
   const entries: ActivityEntry[] = await kv.getByPrefix("eb:audit:");

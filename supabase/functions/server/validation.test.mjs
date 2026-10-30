@@ -22,6 +22,8 @@ for (const role of ["owner", "admin", "moderator"]) {
   assert.equal(canAccess(role, "/make-server-ad6cf477/admin/team/user@example.com"), role === "owner");
   assert.equal(canAccess(role, "/make-server-ad6cf477/admin/submissions"), role !== "moderator");
   assert.equal(canAccess(role, "/make-server-ad6cf477/admin/submissions/join-123"), role !== "moderator");
+  assert.equal(canAccess(role, "/make-server-ad6cf477/admin/facebook/history"), true);
+  assert.equal(canAccess(role, "/make-server-ad6cf477/admin/facebook/import"), true);
 }
 
 const content = {
@@ -76,8 +78,31 @@ assert.equal(validContent({
   legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: Array(15).fill("https://example.com/a.jpg") }],
 }), true);
 assert.equal(validContent({ ...content, clubLeadership: [], legacy: [{ year: "2020", title: "EB Day", text: "", image: "", images: [] }] }), true);
+const galleryPhoto = {
+  src: "https://example.com/public-photo.jpg",
+  alt: "Official club workshop",
+  kind: "photo",
+  source: "https://www.facebook.com/451695514683833/posts/123",
+};
+assert.equal(validContent({ ...content, activityGalleries: { workshops: [galleryPhoto], tours: [] } }), true);
+assert.equal(validContent({ ...content, activityGalleries: { workshops: [{ ...galleryPhoto, src: "/images/activities/corporate-grooming.webp", kind: "poster" }] } }), true);
+for (const invalid of [
+  { bad: [] },
+  { workshops: Array(31).fill(galleryPhoto) },
+  { workshops: [{ ...galleryPhoto, src: "javascript:alert(1)" }] },
+  { workshops: [{ ...galleryPhoto, src: "/images/activities/../../private.webp" }] },
+  { workshops: [{ ...galleryPhoto, src: "https://user:password@example.com/image.jpg" }] },
+  { workshops: [{ ...galleryPhoto, src: "https://example.com/image.jpg?access_token=private" }] },
+  { workshops: [{ ...galleryPhoto, kind: "video" }] },
+  { workshops: [{ ...galleryPhoto, alt: "x".repeat(501) }] },
+  { workshops: [{ ...galleryPhoto, source: "https://evil.example.com/post/123" }] },
+  { workshops: [{ ...galleryPhoto, source: "https://www.facebook.com/post/123?access_token=private" }] },
+]) assert.equal(validContent({ ...content, activityGalleries: invalid }), false);
+const indexSource = readFileSync(new URL("./index.tsx", import.meta.url), "utf8");
+assert(indexSource.indexOf('app.use(`${base}/admin/*`') < indexSource.indexOf('app.get(`${base}/admin/facebook/history`'), "History routes must be protected by approved-admin middleware.");
 console.log("PASS: confirmed owner, non-owner and unconfirmed rejection, role permissions, content validation.");
 await import("./account_access.test.mjs");
 await import("./facebook.test.mjs");
 await import("./facebook-diagnostics.test.mjs");
 await import("./facebook-shared.test.mjs");
+await import("./facebook-archive.test.mjs");

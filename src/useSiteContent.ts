@@ -7,12 +7,16 @@ export const contentUpdatedKey = "eb-content-updated"
 
 export function announceContentUpdate() {
   window.dispatchEvent(new Event(contentUpdatedEvent))
-  try { localStorage.setItem(contentUpdatedKey, `${Date.now()}-${Math.random()}`) }
-  catch { /* Focus and interval refresh still work when storage is unavailable. */ }
+  try {
+    localStorage.setItem(contentUpdatedKey, `${Date.now()}-${Math.random()}`)
+  } catch {
+    /* Focus and interval refresh still work when storage is unavailable. */
+  }
 }
 
-export default function useSiteContent() {
+export function useSiteContentState() {
   const [content, setContent] = useState<Partial<SiteContent>>({})
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   useEffect(() => {
     let active = true
     let controller: AbortController | undefined
@@ -21,11 +25,23 @@ export default function useSiteContent() {
       const current = new AbortController()
       controller = current
       void readContent(serverUrl, publicAnonKey, current.signal)
-        .then(saved => { if (active && !current.signal.aborted) setContent(saved ?? {}) })
-        .catch(() => { /* Keep the last successful content during connection failures. */ })
+        .then((saved) => {
+          if (active && !current.signal.aborted) {
+            setContent(saved ?? {})
+            setStatus("ready")
+          }
+        })
+        .catch(() => {
+          if (active && !current.signal.aborted) setStatus("error")
+          // Keep the last successful content during connection failures.
+        })
     }
-    const refreshVisible = () => { if (!document.hidden) refresh() }
-    const onStorage = (event: StorageEvent) => { if (event.key === contentUpdatedKey) refreshVisible() }
+    const refreshVisible = () => {
+      if (!document.hidden) refresh()
+    }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === contentUpdatedKey) refreshVisible()
+    }
     refresh()
     window.addEventListener("focus", refreshVisible)
     window.addEventListener(contentUpdatedEvent, refreshVisible)
@@ -42,5 +58,9 @@ export default function useSiteContent() {
       document.removeEventListener("visibilitychange", refreshVisible)
     }
   }, [])
-  return content
+  return { content, status }
+}
+
+export default function useSiteContent() {
+  return useSiteContentState().content
 }

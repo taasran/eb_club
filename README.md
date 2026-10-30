@@ -114,6 +114,24 @@ is no background import or webhook. Non-Latin captions use English fallback copy
 See [Facebook integration setup](docs/facebook-integration.md) for the two secret
 names, deployment steps, token renewal and troubleshooting.
 
+## Homepage photography
+
+The hero does not render the previous stock photo while waiting for published
+content. Its current image is requested eagerly with high fetch priority.
+Missing or failed images use a branded placeholder rather than a broken image.
+“Find your spark” uses reviewed official club photos where available; other
+categories await verified images, and admin-uploaded activity photos take priority.
+See [activity photography and source posts](docs/activity-photography.md).
+Activity cards support multiple reviewed photos with per-slide source links,
+previous/next buttons, keyboard arrows, touch swipes and a photo counter.
+The workshops card includes both the conference photo and Corporate Grooming
+poster. This is not a complete import or analysis of the Facebook Page history;
+the public feed still returns only six posts. Approved administrators can use the
+new **Official Page archive** scanner to read older posts and album pages, review
+activity suggestions, copy images to club storage and publish up to 30 photos
+per activity through the existing verified save flow.
+See [Facebook history setup, security and deployment](docs/facebook-history.md).
+
 ## Executive showcase
 
 ### Moving profiles between sections
@@ -136,16 +154,38 @@ The native smooth-scroll carousel advances every four seconds when visible,
 pauses on hover/focus and supports Pause/Resume, keyboard arrows and touch. It
 does not auto-animate for reduced-motion users or when every card fits on screen.
 
-Current and archived members share the compact, rounded portrait-card design in
-`src/components/profile-cards.css`: edge-to-edge photos with a frosted caption
-panel, translucent ivory in day mode and smoke glass at night.
+Current and archived members share the tall capsule design in
+`src/components/profile-cards.css`: a pastel arched header with the name and
+designation above a separately rounded lower portrait. Butter, blush, mist-blue
+and peach tones cycle through the roster and remain readable in both themes.
+Each portrait sits in a matching gradient studio mat with fine diagonal lines,
+soft halo rings and an inset photo frame. These are non-destructive CSS
+surrounds: original opaque photo backgrounds are retained, not automatically
+removed or replaced, and faces are not filtered or recoloured.
 Executive cards use “Executives Economics & Banking Club”; leadership and archive
 cards keep their own descriptive labels. Decorative card numbers are omitted.
 Names appear above designations. Existing photo crop/zoom settings, IDs, batches,
 sessions, quotes and responsibilities remain intact. The keyboard-accessible
-**View profile** disclosure reveals the quote/responsibility; longer content
-scrolls within the glass panel without resizing the carousel. It is not a fake
-Follow action and does not display invented follower counts.
+**View profile** link (or clicking the card) opens
+`/profiles/:group/:profileKey`, a responsive teal poster-style detail page with
+the saved portrait/crop, name, designation, published ID/batch/session, speech
+and role overview. It includes club affiliation, clearly labelled club contact,
+copy-link with a manual fallback, previous/next profiles and directory navigation.
+Absent personal fields are omitted; no biographies, achievements, private
+contacts or follower counts are invented. Profiles refresh through the existing
+public content API; direct links work on reload and current-team links still
+resolve after a Leadership/Executives transfer. Student IDs identify current
+profiles when present; otherwise links use name/role/session (or a placeholder
+slot). Changing those identifying fields can change a profile's URL.
+Loading, unavailable-record and connection-error states are separate.
+The portrait panel shows designation-based **Role inspiration** from
+`src/data/roleQuotes.ts`, replacing the generic poster tagline. These are
+editorial lines, not attributed personal statements or an official club motto.
+**In their words** shows a three-line English speech tailored to the designation
+on every profile, including profiles that already have a saved quote. The small
+**Suggested role-based message** label distinguishes these templates from
+verified personal statements. Saved quotes are not deleted or overwritten,
+but they no longer take precedence in this public profile section.
 The club-crest medallion and subtle pointer-only lift finish the cards.
 Reduced-motion preferences disable movement.
 
@@ -162,8 +202,12 @@ before rendering to avoid a light flash.
 `src/theme.css` extends the existing club tokens with a deep-emerald night
 palette. Keep brand-panel/photograph text separate from surface text, and use
 semantic tokens instead of adding isolated dark backgrounds. The login artwork
-is decorative, not live statistics. Its Motion control pauses the ambient
-animation, and `prefers-reduced-motion` disables it automatically. Sign-in,
+is an illustrative supply/demand graph with price/quantity axes and a marked
+equilibrium, not live statistics. The curves and mini growth bars draw once
+and settle within four seconds; there is no Motion on/off button.
+Sign in/Create account controls have a sliding selection indicator and
+directional form transitions; keyboard focus follows the new form heading.
+`prefers-reduced-motion` disables the animations and transitions. Sign-in,
 account review and password recovery use the unchanged Supabase flows.
 
 ## Conventions for the next developer

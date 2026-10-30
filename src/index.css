@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Libre+Caslon+Display&family=Playfair+Display:ital@1&display=swap');
 @import 'tailwindcss';
+@import './components/economics-loader.css';
 
 .site-shell{position:relative;isolation:isolate}
 .economics-backdrop{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;color:var(--forest);opacity:1}
@@ -437,34 +438,7 @@ summary:focus-visible{outline:2px solid var(--gold);outline-offset:5px}
 .admin-day-list small{color:var(--muted);text-align:right}
 @media (max-width:760px){.admin-stats.four{grid-template-columns:1fr 1fr}.admin-chart{height:170px;gap:2px}}
 
-/* Economics loader: club crest (laurel, open EB book) with a spinning Taka coin */
-.eco-loader{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--forest)}
-.eco-loader svg{width:110px;height:110px;overflow:visible}
-.eco-loader>span{font-size:12px;letter-spacing:1.4px;font-weight:600;color:var(--muted);text-transform:uppercase}
-.eco-stem{fill:none;stroke:var(--gold);stroke-width:1.6;stroke-linecap:round;opacity:.6}
-.eco-leaf{fill:var(--gold);transform-box:fill-box;transform-origin:center;animation:eco-leaf-grow 2.4s ease-in-out infinite}
-.eco-coin{transform-box:fill-box;transform-origin:center;animation:eco-coin-flip 2.4s ease-in-out infinite}
-.eco-coin circle{fill:var(--gold);stroke:#fff9;stroke-width:1.2}
-.eco-coin text{font-family:var(--sans);font-size:12px;font-weight:700;fill:var(--white)}
-.eco-page{fill:var(--forest);transform-box:fill-box;animation:eco-page-open 2.4s ease-in-out infinite}
-.eco-page.left{transform-origin:right center}.eco-page.right{transform-origin:left center}
-.eco-spine{stroke:var(--ivory);stroke-width:1.4}
-.eco-letter{font-family:var(--serif);font-size:14px;fill:var(--ivory);animation:eco-fade 2.4s ease-in-out infinite}
-.eco-iiuc{font-family:var(--serif);font-size:9px;letter-spacing:2px;fill:var(--forest);opacity:.8}
-@keyframes eco-leaf-grow{0%{opacity:0;transform:scale(.2)}18%,78%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.2)}}
-@keyframes eco-coin-flip{0%,100%{transform:translateY(0) scaleX(1)}25%{transform:translateY(-5px) scaleX(.1)}50%{transform:translateY(0) scaleX(1)}75%{transform:translateY(-5px) scaleX(.1)}}
-@keyframes eco-page-open{0%,100%{transform:scaleX(.15)}25%,80%{transform:scaleX(1)}}
-@keyframes eco-fade{0%,15%,100%{opacity:0}30%,78%{opacity:1}}
-@keyframes eco-bar-rise{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
-
-.eco-loader-inline{display:inline-flex;align-items:flex-end;gap:2px;height:14px;vertical-align:middle}
-.eco-loader-inline i{width:3px;height:100%;border-radius:1px;background:currentColor;transform-origin:bottom;animation:eco-bar-rise 1s ease-in-out infinite}
-.eco-loader-inline i:nth-child(2){animation-delay:.12s}.eco-loader-inline i:nth-child(3){animation-delay:.24s}.eco-loader-inline i:nth-child(4){animation-delay:.36s}
 .admin-loading-block{display:grid;place-items:center;padding:48px 0}
-
-@media (prefers-reduced-motion:reduce){
-  .eco-coin,.eco-leaf,.eco-page,.eco-letter,.eco-loader-inline i{animation:none}
-}
 
 
 /* ===== Hero ===== */

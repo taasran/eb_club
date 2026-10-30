@@ -896,6 +896,15 @@ try {
   const { default: FacebookPhotoLibrary } = await import(
     compile("admin/FacebookPhotoLibrary")
   )
+  const { EventProgrammesManager, SparkActivityManager } = await import(
+    compile("admin/FacebookPhotoLibrary")
+  )
+  const {
+    createCustomActivity,
+    eventPhotos,
+    presetClubActivities,
+    resolveActivities,
+  } = await import(compile("activityMedia"))
   const libraryHtml = renderToStaticMarkup(
     createElement(FacebookPhotoLibrary, {
       request: async () =>
@@ -909,6 +918,107 @@ try {
   assert.match(libraryHtml, /Start new history scan/)
   assert.match(libraryHtml, /Review before publishing/)
   assert.match(libraryHtml, /Not complete/)
+  const sparkManagerHtml = renderToStaticMarkup(
+    createElement(SparkActivityManager, {
+      content: fixture,
+      disabled: false,
+      onChangeContent() {},
+      onUploadImage() {},
+      notify() {},
+    }),
+  )
+  assert.match(
+    sparkManagerHtml,
+    /Choose which activities appear on the website, or add new ones\./,
+  )
+  assert.match(sparkManagerHtml, /\+ Add custom activity/)
+  assert.match(sparkManagerHtml, /\+ Case &amp; debate competitions/)
+  assert.match(sparkManagerHtml, /\+ Upload to gallery/)
+  const customActivity = createCustomActivity(
+    activityDefinitions.map((item) => item.id),
+    presetClubActivities[0],
+  )
+  assert.equal(customActivity.id, "case-debate")
+  const customDraft = archiveClient.appendActivityPhoto(
+    {
+      ...fixture,
+      activities: [
+        ...resolveActivities(activityDefinitions, undefined, true).map(
+          (item) =>
+            item.id === "health-camp" ? { ...item, enabled: false } : item,
+        ),
+        customActivity,
+      ],
+    },
+    "case-debate",
+    importedPhoto,
+  )
+  assert.equal(
+    activityPhotos(
+      customDraft.activities.find((item) => item.id === "case-debate"),
+    ).length,
+    1,
+  )
+  globalThis.__clubContentFixture = customDraft
+  const customSparkHtml = renderToStaticMarkup(createElement(App))
+  assert.match(customSparkHtml, /Case &amp; debate competitions/)
+  assert.match(customSparkHtml, /Sharpen your analytical thinking\./)
+  assert.doesNotMatch(customSparkHtml, /Caring for our community\./)
+  const eventManagerHtml = renderToStaticMarkup(
+    createElement(EventProgrammesManager, {
+      content: fixture,
+      disabled: false,
+      onChangeContent() {},
+      onUploadImage() {},
+      notify() {},
+    }),
+  )
+  assert.match(
+    eventManagerHtml,
+    /Add upcoming or completed events, and attach photos from Facebook or your device\./,
+  )
+  assert.match(eventManagerHtml, /\+ Add custom event/)
+  assert.match(eventManagerHtml, /\+ Economics &amp; Banking Seminar/)
+  const eventLibraryHtml = renderToStaticMarkup(
+    createElement(FacebookPhotoLibrary, {
+      request: async () =>
+        assert.fail("The archive only reads after an explicit admin action."),
+      content: fixture,
+      disabled: false,
+      mode: "event",
+      onAdd() {},
+      onPending() {},
+    }),
+  )
+  assert.match(
+    eventLibraryHtml,
+    /Import event photos or create events from your Page history\./,
+  )
+  const withEventPhoto = archiveClient.appendEventPhoto(
+    fixture,
+    0,
+    importedPhoto,
+  )
+  assert.equal(eventPhotos(withEventPhoto.events[0]).length, 1)
+  const withCreatedEvent = archiveClient.createEventFromArchivePost(
+    withEventPhoto,
+    {
+      id: "451695514683833_999",
+      message: "Workshop on Corporate Grooming. Preparing students for banking careers.",
+      createdAt: "2026-10-28T12:00:00.000Z",
+      url: "https://www.facebook.com/451695514683833/posts/999",
+      images: [],
+    },
+    importedPhoto,
+  )
+  assert.equal(withCreatedEvent.events[0].title, "Workshop on Corporate Grooming.")
+  assert.equal(withCreatedEvent.events[0].type, "Workshop")
+  assert.equal(eventPhotos(withCreatedEvent.events[0]).length, 1)
+  globalThis.__clubContentFixture = withCreatedEvent
+  const eventPhotoHomeHtml = renderToStaticMarkup(createElement(App))
+  assert.match(eventPhotoHomeHtml, /Workshop on Corporate Grooming\./)
+  assert.match(eventPhotoHomeHtml, /event-row-thumb/)
+  globalThis.__clubContentFixture = fixture
   assert.equal(
     activityPhotos(activityDefinitions.find((item) => item.id === "tours"))
       .length,

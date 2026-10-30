@@ -1,8 +1,11 @@
 import activityPhotos, {
+  builtInActivityIds,
+  eventPhotos,
   maxActivityPhotos,
+  resolveActivities,
   type ActivityPhoto,
 } from "../activityMedia"
-import type { SiteContent } from "../contentClient"
+import type { ClubEvent, SiteContent } from "../contentClient"
 import { activities } from "../data/club"
 
 export type ArchivePhoto = {
@@ -133,8 +136,16 @@ export function mergeArchivePosts(
 }
 
 /** Suggestions require an administrator's review; nothing is auto-published. */
-export function suggestActivity(message: string) {
+export function suggestActivity(
+  message: string,
+  availableActivities: readonly {
+    id: string
+    label: string
+    title?: string
+  }[] = activities,
+) {
   const text = message.toLowerCase()
+  const availableIds = new Set(availableActivities.map((item) => item.id))
   const rules = [
     ["health-camp", /health camp|medical camp|blood donat|স্বাস্থ্য|রক্তদান|চিকিৎসা/],
     [
@@ -150,6 +161,22 @@ export function suggestActivity(message: string) {
       /picnic|departmental tour|study tour|excursion|বনভোজন|পিকনিক|শিক্ষা\s*সফর/,
     ],
     [
+      "career-grooming",
+      /corporate grooming|cv clinic|mock interview|etiquette|ক্যারিয়ার/,
+    ],
+    [
+      "case-debate",
+      /case competition|debate|policy debate|বিতর্ক/,
+    ],
+    [
+      "festivals",
+      /winter fest|eb day|festival|fest\b|উৎসব/,
+    ],
+    [
+      "farewell-orientation",
+      /farewell|felicitation|orientation|reception|freshers|বিদায়ী|নবীনবরণ/,
+    ],
+    [
       "leadership",
       /corporate grooming|career|leadership|professional development|নেতৃত্ব|ক্যারিয়ার/,
     ],
@@ -158,7 +185,18 @@ export function suggestActivity(message: string) {
       /workshop|seminar|conference|research|debate|কর্মশালা|সেমিনার|গবেষণা|বিতর্ক/,
     ],
   ] as const
-  return rules.find(([, pattern]) => pattern.test(text))?.[0] ?? ""
+  const matchedRule = rules.find(
+    ([id, pattern]) => availableIds.has(id) && pattern.test(text),
+  )?.[0]
+  if (matchedRule) return matchedRule
+  for (const item of availableActivities) {
+    const words = item.label
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((word) => word.length >= 4 && !["club", "with", "from"].includes(word))
+    if (words.some((word) => text.includes(word))) return item.id
+  }
+  return ""
 }
 
 export async function importArchivePhoto(
@@ -188,12 +226,43 @@ export async function importArchivePhoto(
   return photo
 }
 
+export function setActivityGallery(
+  content: SiteContent,
+  id: string,
+  photos: ActivityPhoto[],
+): SiteContent {
+  const nextPhotos = photos.slice(0, maxActivityPhotos)
+  const isBuiltIn = (builtInActivityIds as readonly string[]).includes(id)
+  const nextActivities = content.activities?.map((item) =>
+    item.id === id ? { ...item, gallery: nextPhotos } : item,
+  )
+  if (isBuiltIn) {
+    return {
+      ...content,
+      ...(nextActivities ? { activities: nextActivities } : {}),
+      activityGalleries: {
+        ...content.activityGalleries,
+        [id]: nextPhotos,
+      },
+    }
+  }
+  const list = resolveActivities(activities, content.activities, true)
+  if (!list.some((item) => item.id === id)) return content
+  return {
+    ...content,
+    activities: list.map((item) =>
+      item.id === id ? { ...item, gallery: nextPhotos } : item,
+    ),
+  }
+}
+
 export function appendActivityPhoto(
   content: SiteContent,
   id: string,
   photo: ActivityPhoto,
 ): SiteContent {
-  const activity = activities.find((item) => item.id === id)
+  const list = resolveActivities(activities, content.activities, true)
+  const activity = list.find((item) => item.id === id)
   if (!activity) return content
   const current = activityPhotos(
     activity,
@@ -205,11 +274,99 @@ export function appendActivityPhoto(
     current.some((item) => item.src === photo.src)
   )
     return content
+  return setActivityGallery(content, id, [...current, photo])
+}
+
+export function setEventGallery(
+  content: SiteContent,
+  eventIndex: number,
+  photos: ActivityPhoto[],
+): SiteContent {
+  if (eventIndex < 0 || eventIndex >= content.events.length) return content
+  const nextPhotos = photos.slice(0, maxActivityPhotos)
   return {
     ...content,
-    activityGalleries: {
-      ...content.activityGalleries,
-      [id]: [...current, photo],
-    },
+    events: content.events.map((item, index) =>
+      index === eventIndex
+        ? {
+            ...item,
+            gallery: nextPhotos,
+            image: nextPhotos[0]?.src ?? "",
+          }
+        : item,
+    ),
+  }
+}
+
+export function appendEventPhoto(
+  content: SiteContent,
+  eventIndex: number,
+  photo: ActivityPhoto,
+): SiteContent {
+  const event = content.events[eventIndex]
+  if (!event) return content
+  const current = eventPhotos(event)
+  if (
+    current.length >= maxActivityPhotos ||
+    current.some((item) => item.src === photo.src)
+  )
+    return content
+  return setEventGallery(content, eventIndex, [...current, photo])
+}
+
+export function summarizePostAsEvent(
+  post: Pick<ArchivePost, "message" | "createdAt">,
+): Pick<ClubEvent, "title" | "type" | "status" | "date" | "venue" | "description"> {
+  const cleaned = post.message
+    .replace(/\s+/g, " ")
+    .trim()
+  const firstSentence = cleaned
+    .split(/(?<=[.!?])\s+|\n+/)[0]
+    ?.trim()
+    .slice(0, 80)
+  const lower = cleaned.toLowerCase()
+  const type = /workshop|grooming/.test(lower)
+    ? "Workshop"
+    : /seminar|conference|icbm/.test(lower)
+      ? "Seminar"
+      : /tour|visit/.test(lower)
+        ? "Tour & visit"
+        : /tournament|cricket|football|sports/.test(lower)
+          ? "Tournament"
+          : /fest|day|farewell|orientation/.test(lower)
+            ? "Club programme"
+            : "Club event"
+  const formattedDate = Number.isFinite(Date.parse(post.createdAt))
+    ? new Date(post.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : ""
+  return {
+    title: firstSentence || `${type} · EB Club IIUC`,
+    type,
+    status: "Completed",
+    date: formattedDate,
+    venue: "IIUC campus",
+    description: cleaned.slice(0, 360),
+  }
+}
+
+export function createEventFromArchivePost(
+  content: SiteContent,
+  post: ArchivePost,
+  photo: ActivityPhoto,
+): SiteContent {
+  const summary = summarizePostAsEvent(post)
+  const newEvent: ClubEvent = {
+    ...summary,
+    deadline: "",
+    image: photo.src,
+    gallery: [photo],
+  }
+  return {
+    ...content,
+    events: [newEvent, ...content.events],
   }
 }

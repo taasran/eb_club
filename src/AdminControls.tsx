@@ -23,6 +23,8 @@ const AdminControls = {
   Summary: "summary",
   Select: "select",
   Option: "option",
+  Textarea: "textarea",
+  Header: "header",
 } as const
 
 export default AdminControls

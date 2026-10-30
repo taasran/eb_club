@@ -5,9 +5,16 @@ import ActivityLog from "./admin/ActivityLog"
 import AdminAccess from "./AdminAccess"
 import AdminAuth from "./admin/AdminAuth"
 import ProjectDownload from "./admin/ProjectDownload"
-import FacebookPhotoLibrary, { ActivityGalleryEditor } from "./admin/FacebookPhotoLibrary"
-import { appendActivityPhoto } from "./admin/facebookArchive"
-import activityPhotos from "./activityMedia"
+import FacebookPhotoLibrary, {
+  EventProgrammesManager,
+  SparkActivityManager,
+} from "./admin/FacebookPhotoLibrary"
+import {
+  appendActivityPhoto,
+  appendEventPhoto,
+  createEventFromArchivePost,
+} from "./admin/facebookArchive"
+import { resolveActivities } from "./activityMedia"
 import AdminControls from "./AdminControls"
 import ThemeToggle from "./components/ThemeToggle"
 import {
@@ -20,10 +27,8 @@ import {
 import {
   readContent,
   publishContent,
-  eventStatuses,
   currentClubTeam,
   maxLegacyPhotos,
-  type EventStatus,
   type LegacyMilestone,
   type SiteContent,
 } from "./contentClient"
@@ -37,7 +42,7 @@ import {
   type Tab,
 } from "./admin/config"
 
-const { P, Main, Div, Link, Button, Span, Article, Strong } = AdminControls
+const { P, Main, Div, Link, Button, Span, Article, Strong, Small } = AdminControls
 
 type Content = SiteContent
 
@@ -719,16 +724,18 @@ export default function AdminPage() {
         itemIndex === index ? { ...item, ...patch } : item,
       ),
     }))
-  const updateEvent = (
+  const moveExecutive = (
     index: number,
-    patch: Partial<Content["events"][number]>,
+    direction: -1 | 1,
+    list: "executives" | "clubLeadership" = "executives",
   ) =>
-    setContent((current) => ({
-      ...current,
-      events: current.events.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    }))
+    setContent((current) => {
+      const items = [...(current[list] ?? [])]
+      const target = index + direction
+      if (target < 0 || target >= items.length) return current
+      ;[items[index], items[target]] = [items[target], items[index]]
+      return { ...current, [list]: items }
+    })
   const updateMilestone = (index: number, patch: Partial<LegacyMilestone>) =>
     setContent((current) => ({
       ...current,
@@ -803,6 +810,7 @@ export default function AdminPage() {
     visitors: 0,
     inbox: submissions.length,
     home: 0,
+    spark: resolveActivities(activities, content.activities).length,
     events: content.events.length,
     legacy: (content.legacy ?? []).length,
     executives: content.executives.length,
@@ -841,6 +849,20 @@ export default function AdminPage() {
   const transferDestination = otherTeamSection(teamList)
   const transferDestinationFull =
     (content[transferDestination] ?? []).length >= maxTeamProfiles
+  const selectTab = (nextTab: Tab) => {
+    setTab(nextTab)
+    if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+  const quickTabs: Tab[] = [
+    "home",
+    "spark",
+    "events",
+    "legacy",
+    "clubLeadership",
+    "executives",
+  ]
 
   return (
     <main className="admin-shell admin-app">
@@ -865,7 +887,7 @@ export default function AdminPage() {
                 className={
                   item.id === tab ? "admin-nav-item active" : "admin-nav-item"
                 }
-                onClick={() => setTab(item.id)}
+                onClick={() => selectTab(item.id)}
                 aria-current={item.id === tab ? "page" : undefined}
               >
                 <AdminIcon name={item.icon} />
@@ -903,11 +925,57 @@ export default function AdminPage() {
 
       <section className="admin-main">
         <div className="admin-topbar">
-          <span>Admin</span>
-          <span>/</span>
-          <strong>{activeTab.label}</strong>
-          <ThemeToggle />
+          <Div className="admin-topbar-title">
+            <span>Admin</span>
+            <span>/</span>
+            <strong>{activeTab.label}</strong>
+            <Span
+              className={
+                dirty ? "admin-topbar-pill is-dirty" : "admin-topbar-pill"
+              }
+            >
+              {dirty ? "Unsaved changes" : "Saved"}
+            </Span>
+          </Div>
+          <Div className="admin-topbar-actions">
+            {dirty && (
+              <Button
+                type="button"
+                className="admin-btn primary"
+                onClick={save}
+                disabled={busy || pendingUploads > 0}
+              >
+                {busy ? "Saving…" : "Save changes"}
+              </Button>
+            )}
+            <ThemeToggle />
+          </Div>
         </div>
+
+        <Div
+          className="admin-quick-nav"
+          role="navigation"
+          aria-label="Quick section switcher"
+        >
+          {tabs
+            .filter((item) => quickTabs.includes(item.id))
+            .map((item) => (
+              <Button
+                type="button"
+                key={item.id}
+                className={
+                  item.id === tab
+                    ? "fb-spark-pill is-shown"
+                    : "fb-spark-pill"
+                }
+                onClick={() => selectTab(item.id)}
+              >
+                <AdminIcon name={item.icon} />
+                <Span>{item.label}</Span>
+                {counts[item.id] > 0 && <Small>{counts[item.id]}</Small>}
+              </Button>
+            ))}
+        </Div>
 
         <ProjectDownload />
 
@@ -1296,8 +1364,8 @@ export default function AdminPage() {
             </div>
             <SectionHeader
               eyebrow="ACTIVITIES"
-              title="Activity photos"
-              description="Scan and review official Facebook photos, then build a gallery for each activity. A new single-image override replaces that activity's gallery. Save changes to publish."
+              title="Find your spark · Activities"
+              description="Choose which activities appear on the website, add new club activities, and build a photo gallery for each activity. Save changes to publish."
             />
             <FacebookPhotoLibrary
               request={request}
@@ -1305,40 +1373,16 @@ export default function AdminPage() {
               disabled={busy}
               onPending={change => setPendingUploads(count => Math.max(0, count + change))}
               onAdd={(id, photo) => setContent(current => appendActivityPhoto(current, id, photo))}
+              onAddEvent={(index, photo) => setContent(current => appendEventPhoto(current, index, photo))}
+              onCreateEvent={(post, photo) => setContent(current => createEventFromArchivePost(current, post, photo))}
             />
-            <div className="admin-people">
-              {activities.map((activity) => (
-                <div className="admin-card" key={activity.id}>
-                  <ImageField
-                    size="1200 × 800 px (landscape 3:2)"
-                    label={`${activity.category} · ${activity.label}`}
-                    value={content.activityImages?.[activity.id] ?? ""}
-                    onChange={(value) => setActivityImage(activity.id, value)}
-                    onUpload={(file) =>
-                      uploadImage(file, (url) =>
-                        setActivityImage(activity.id, url),
-                      )
-                    }
-                  />
-                  <ActivityGalleryEditor
-                    activity={activity}
-                    photos={activityPhotos(activity, content.activityImages?.[activity.id], content.activityGalleries?.[activity.id])}
-                    disabled={busy || pendingUploads > 0}
-                    onChange={photos => setContent(current => ({
-                      ...current,
-                      activityGalleries: { ...current.activityGalleries, [activity.id]: photos },
-                    }))}
-                    onReset={() => setContent(current => {
-                      const activityGalleries = { ...current.activityGalleries }
-                      const activityImages = { ...current.activityImages }
-                      delete activityGalleries[activity.id]
-                      delete activityImages[activity.id]
-                      return { ...current, activityGalleries, activityImages }
-                    })}
-                  />
-                </div>
-              ))}
-            </div>
+            <SparkActivityManager
+              content={content}
+              disabled={busy || pendingUploads > 0}
+              onChangeContent={setContent}
+              onUploadImage={uploadImage}
+              notify={notify}
+            />
             <SectionHeader
               eyebrow="FOOTER"
               title="Contact & social links"
@@ -1370,6 +1414,32 @@ export default function AdminPage() {
                 />
               </div>
             </div>
+          </>
+        )}
+
+        {tab === "spark" && (
+          <>
+            <SectionHeader
+              eyebrow="BEYOND THE CLASSROOM"
+              title="Find your spark · Activities"
+              description="Choose which activities appear on the website, add new club activities, and manage photos for every activity. Save changes to publish."
+            />
+            <SparkActivityManager
+              content={content}
+              disabled={busy || pendingUploads > 0}
+              onChangeContent={setContent}
+              onUploadImage={uploadImage}
+              notify={notify}
+            />
+            <FacebookPhotoLibrary
+              request={request}
+              content={content}
+              disabled={busy}
+              onPending={change => setPendingUploads(count => Math.max(0, count + change))}
+              onAdd={(id, photo) => setContent(current => appendActivityPhoto(current, id, photo))}
+              onAddEvent={(index, photo) => setContent(current => appendEventPhoto(current, index, photo))}
+              onCreateEvent={(post, photo) => setContent(current => createEventFromArchivePost(current, post, photo))}
+            />
           </>
         )}
 
@@ -1532,106 +1602,25 @@ export default function AdminPage() {
             <SectionHeader
               eyebrow="EVENTS"
               title="Upcoming programmes"
-              description="The first two events are featured on the home page."
-              action={
-                <button
-                  type="button"
-                  className="admin-btn ghost"
-                  onClick={() =>
-                    setContent((current) => ({
-                      ...current,
-                      events: [
-                        ...current.events,
-                        {
-                          title: "",
-                          type: "",
-                          status: "Coming Soon",
-                          date: "",
-                          venue: "",
-                          deadline: "",
-                        },
-                      ],
-                    }))
-                  }
-                >
-                  <AdminIcon name="plus" /> Add event
-                </button>
-              }
+              description="Manage club events, attach photos from Facebook or your device, and feature the top two events on the home page."
             />
-            {content.events.length === 0 && (
-              <div className="admin-empty">
-                No events yet. Add your first event.
-              </div>
-            )}
-            <div className="admin-stack">
-              {content.events.map((item, index) => (
-                <div className="admin-card admin-row-card" key={index}>
-                  <span className="admin-index">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="admin-grid two">
-                    <Field
-                      label="Event title"
-                      value={item.title}
-                      placeholder="e.g. Economics in a changing world"
-                      onChange={(value) => updateEvent(index, { title: value })}
-                    />
-                    <Field
-                      label="Event type"
-                      value={item.type}
-                      placeholder="e.g. Seminar"
-                      onChange={(value) => updateEvent(index, { type: value })}
-                    />
-                    <label className="admin-field">
-                      <span>Status</span>
-                      <select
-                        value={item.status ?? "Coming Soon"}
-                        onChange={(event) =>
-                          updateEvent(index, {
-                            status: event.target.value as EventStatus,
-                          })
-                        }
-                      >
-                        {eventStatuses.map((status) => (
-                          <option key={status}>{status}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <Field
-                      label="Date"
-                      value={item.date ?? ""}
-                      placeholder="e.g. 12 May 2026, 10:00 AM"
-                      onChange={(value) => updateEvent(index, { date: value })}
-                    />
-                    <Field
-                      label="Venue"
-                      value={item.venue ?? ""}
-                      placeholder="IIUC campus"
-                      onChange={(value) => updateEvent(index, { venue: value })}
-                    />
-                    <Field
-                      label="Registration deadline"
-                      value={item.deadline ?? ""}
-                      placeholder="e.g. 10 May 2026"
-                      onChange={(value) =>
-                        updateEvent(index, { deadline: value })
-                      }
-                    />
-                  </div>
-                  <RemoveButton
-                    label="Remove event"
-                    onClick={() =>
-                      setContent((current) => ({
-                        ...current,
-                        events: current.events.filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
-                      }))
-                    }
-                  />
-                </div>
-              ))}
-            </div>
+            <FacebookPhotoLibrary
+              request={request}
+              content={content}
+              disabled={busy}
+              mode="event"
+              onPending={change => setPendingUploads(count => Math.max(0, count + change))}
+              onAdd={(id, photo) => setContent(current => appendActivityPhoto(current, id, photo))}
+              onAddEvent={(index, photo) => setContent(current => appendEventPhoto(current, index, photo))}
+              onCreateEvent={(post, photo) => setContent(current => createEventFromArchivePost(current, post, photo))}
+            />
+            <EventProgrammesManager
+              content={content}
+              disabled={busy || pendingUploads > 0}
+              onChangeContent={setContent}
+              onUploadImage={uploadImage}
+              notify={notify}
+            />
           </>
         )}
 
@@ -1686,6 +1675,26 @@ export default function AdminPage() {
                       {String(index + 1).padStart(2, "0")}
                     </Span>
                     <Strong>{item.name || "Unnamed"}</Strong>
+                    <Button
+                      type="button"
+                      className="admin-icon-btn"
+                      aria-label="Move profile earlier"
+                      title="Move earlier"
+                      disabled={index === 0}
+                      onClick={() => moveExecutive(index, -1, teamList)}
+                    >
+                      <AdminIcon name="up" />
+                    </Button>
+                    <Button
+                      type="button"
+                      className="admin-icon-btn"
+                      aria-label="Move profile later"
+                      title="Move later"
+                      disabled={index === teamProfiles.length - 1}
+                      onClick={() => moveExecutive(index, 1, teamList)}
+                    >
+                      <AdminIcon name="down" />
+                    </Button>
                     <RemoveButton
                       label={editingLeaders ? "Remove leader" : "Remove executive"}
                       onClick={() =>

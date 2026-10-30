@@ -1,4 +1,4 @@
-import type { ActivityPhoto } from "./activityMedia"
+import type { ActivityPhoto, ClubActivity } from "./activityMedia"
 
 export type SiteContent = {
   heroTitle: string
@@ -24,12 +24,15 @@ export type SiteContent = {
   }[]
   // Optional so content saved before these sections existed stays valid.
   legacy?: LegacyMilestone[]
+  activities?: ClubActivity[]
   // Keyed by activity id, e.g. "workshops" or "tours".
   activityImages?: Record<string, string>
   activityGalleries?: Record<string, ActivityPhoto[]>
   contactEmail?: string
   linkedinUrl?: string
 }
+
+export type { ClubActivity }
 
 export const eventStatuses = [
   "Upcoming",
@@ -45,6 +48,9 @@ export type ClubEvent = {
   date?: string
   venue?: string
   deadline?: string
+  description?: string
+  image?: string
+  gallery?: ActivityPhoto[]
 }
 export type ExecutiveProfile = {
   name: string

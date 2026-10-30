@@ -1,53 +1,88 @@
+import AdminControls from "./AdminControls"
+
+const { Div, Span, Img, P } = AdminControls
+
 type Props = {
-  /** "page" shows the club-crest scene; "inline" is a compact bar chart for buttons and status text. */
+  /** A branded loading scene, or a current-color indicator for buttons. */
   variant?: "page" | "inline"
   label?: string
 }
 
-// Laurel leaves placed along an arc, mirroring the wreath in the club logo.
-const CX = 60
-const CY = 64
-const R = 44
-const LEAVES = 9
-const leaves = Array.from({ length: LEAVES }, (_, index) => {
-  const angle = (112 + index * 14) * (Math.PI / 180)
-  const x = CX + R * Math.cos(angle)
-  const y = CY + R * Math.sin(angle)
-  const tangent = (112 + index * 14 + 90) % 360
-  return { x, y, rotate: tangent + (index % 2 ? 28 : -28), offset: index % 2 ? 3 : -3, index }
-})
-
-export default function EconomicsLoader({ variant = "page", label }: Props) {
+export default function EconomicsLoader({
+  variant = "page",
+  label = "Loading your club experience",
+}: Props) {
   if (variant === "inline") {
-    return <span className="eco-loader-inline" role="status" aria-label={label ?? "Loading"}>
-      <i /><i /><i /><i />
-    </span>
+    return (
+      <Span className="eco-loader-inline" role="status" aria-label={label}>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle className="eco-inline-track" cx="12" cy="12" r="10" />
+          <circle className="eco-inline-orbit" cx="12" cy="12" r="10" />
+          <path className="eco-inline-trend" d="m6 14 4-4 3 3 5-6" />
+        </svg>
+      </Span>
+    )
   }
 
-  return <div className="eco-loader" role="status" aria-live="polite">
-    <svg viewBox="0 0 120 120" aria-hidden="true">
-      {/* Laurel wreath, both branches growing leaf by leaf */}
-      {[1, -1].map(side => <g key={side} className="eco-wreath" transform={side === -1 ? `translate(120 0) scale(-1 1)` : undefined}>
-        <path className="eco-stem" d={`M ${CX + R * Math.cos(112 * Math.PI / 180)} ${CY + R * Math.sin(112 * Math.PI / 180)} A ${R} ${R} 0 0 1 ${CX + R * Math.cos(224 * Math.PI / 180)} ${CY + R * Math.sin(224 * Math.PI / 180)}`} />
-        {leaves.map(leaf => <ellipse key={leaf.index} className="eco-leaf" style={{ animationDelay: `${leaf.index * 0.09}s` }} cx={leaf.x + leaf.offset} cy={leaf.y} rx="6.5" ry="2.6" transform={`rotate(${leaf.rotate} ${leaf.x + leaf.offset} ${leaf.y})`} />)}
-      </g>)}
-
-      {/* Spinning Taka coin */}
-      <g className="eco-coin">
-        <circle cx="60" cy="30" r="10" />
-        <text x="60" y="34.5" textAnchor="middle">৳</text>
-      </g>
-
-      {/* Open book with EB, as in the crest */}
-      <g className="eco-book">
-        <path className="eco-page left" d="M60 52 C52 47 42 47 36 49 V77 C42 75 52 75 60 80 Z" />
-        <path className="eco-page right" d="M60 52 C68 47 78 47 84 49 V77 C78 75 68 75 60 80 Z" />
-        <line x1="60" y1="52" x2="60" y2="80" className="eco-spine" />
-        <text x="48" y="69" textAnchor="middle" className="eco-letter">E</text>
-        <text x="72" y="69" textAnchor="middle" className="eco-letter">B</text>
-      </g>
-      <text x="60" y="94" textAnchor="middle" className="eco-iiuc">IIUC</text>
-    </svg>
-    {label && <span>{label}</span>}
-  </div>
+  return (
+    <Div className="eco-loader" role="status" aria-label={label}>
+      <Div className="eco-loader-scene" aria-hidden="true">
+        <Div className="eco-loader-grid" />
+        <Span className="eco-loader-coordinate eco-loader-coordinate-top">
+          KNOWLEDGE
+        </Span>
+        <Span className="eco-loader-coordinate eco-loader-coordinate-bottom">
+          IN MOTION
+        </Span>
+        <svg className="eco-loader-orbits" viewBox="0 0 240 240" fill="none">
+          <circle className="eco-loader-orbit-track" cx="120" cy="120" r="103" />
+          <circle className="eco-loader-ticks" cx="120" cy="120" r="94" />
+          <g className="eco-loader-orbit">
+            <circle className="eco-loader-orbit-arc" cx="120" cy="120" r="103" />
+            <circle className="eco-loader-orbit-dot" cx="120" cy="17" r="3" />
+          </g>
+          <g className="eco-loader-orbit eco-loader-orbit-inner">
+            <circle className="eco-loader-inner-arc" cx="120" cy="120" r="81" />
+            <circle className="eco-loader-inner-dot" cx="120" cy="39" r="2" />
+          </g>
+          <path className="eco-loader-crosshair" d="M120 4v5m0 222v5M4 120h5m222 0h5" />
+        </svg>
+        <Div className="eco-loader-emblem">
+          <Img
+            src="/images/club-logo.png"
+            alt=""
+            width={88}
+            height={88}
+            decoding="async"
+          />
+        </Div>
+        <Div className="eco-loader-growth">
+          <svg viewBox="0 0 144 40" fill="none">
+            <path className="eco-loader-growth-axis" d="M4 35h136M4 20h136M4 5h136" />
+            <path
+              className="eco-loader-growth-trace"
+              pathLength="1"
+              d="m4 30 18-6 16 3 18-12 15 5 20-11 14 5 18-12 17 3"
+            />
+            <circle className="eco-loader-growth-point" cx="140" cy="5" r="3" />
+          </svg>
+        </Div>
+      </Div>
+      <Div className="eco-loader-identity" aria-hidden="true">
+        <P className="eco-loader-kicker">IIUC · STUDENT COMMUNITY</P>
+        <P className="eco-loader-name">
+          Economics &amp;
+          <br />
+          Banking Club<Span className="eco-loader-period">.</Span>
+        </P>
+      </Div>
+      <Div className="eco-loader-status">
+        <Span className="eco-loader-status-dot" aria-hidden="true" />
+        <Span>{label}</Span>
+      </Div>
+      <Div className="eco-loader-progress" aria-hidden="true">
+        <Span />
+      </Div>
+    </Div>
+  )
 }

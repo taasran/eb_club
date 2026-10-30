@@ -73,7 +73,7 @@ export const leadershipSections = [
   },
 ]
 
-export type Tab = "visitors" | "inbox" | "home" | "events" | "legacy" | "clubLeadership" | "executives" | "leadership" | "archive" | "team" | "activity"
+export type Tab = "visitors" | "inbox" | "home" | "spark" | "events" | "legacy" | "clubLeadership" | "executives" | "leadership" | "archive" | "team" | "activity"
 
 type AdminTab = {
   id: Tab
@@ -110,8 +110,14 @@ export const tabs: AdminTab[] = [
   {
     id: "home",
     label: "Home page",
-    hint: "Hero text & campus photo",
+    hint: "Hero, campus & Find your spark",
     icon: "home",
+  },
+  {
+    id: "spark",
+    label: "Find your spark",
+    hint: "Choose & add activities",
+    icon: "flag",
   },
   {
     id: "events",

@@ -20,6 +20,8 @@ const executive = (item: unknown) => fields(item, ["name", "designation", "stude
   optional(item.imageX, n => typeof n === "number" && n >= 0 && n <= 100) &&
   optional(item.imageY, n => typeof n === "number" && n >= 0 && n <= 100);
 const activityIds = ["workshops", "industrial-visits", "leadership", "tournaments", "health-camp", "tours"];
+const activityKey = (value: unknown) => typeof value === "string" && /^[a-z0-9-]{1,40}$/i.test(value);
+const activityIcons = ["chart", "briefcase", "people", "flag", "heart", "pin", "target", "handshake", "clock"];
 const galleryPhoto = (item: unknown) => {
   if (!record(item) || typeof item.src !== "string" || !item.src ||
     !(image(item.src) || /^\/images\/activities\/[a-z0-9-]+\.webp$/.test(item.src)) ||
@@ -38,6 +40,17 @@ const galleryPhoto = (item: unknown) => {
       !url.username && !url.password && ![...url.searchParams.keys()].some(key => /token|secret/i.test(key));
   } catch { return false; }
 };
+const clubActivity = (item: unknown) =>
+  record(item) &&
+  activityKey(item.id) &&
+  fields(item, ["category", "label", "title", "text", "icon", "alt"]) &&
+  activityIcons.includes(String(item.icon)) &&
+  optional(item.enabled, enabled => typeof enabled === "boolean") &&
+  (item.image === "" || image(item.image) || /^\/images\/activities\/[a-z0-9-]+\.webp$/.test(String(item.image))) &&
+  ["photo", "poster"].includes(String(item.imageKind ?? "photo")) &&
+  optional(item.imageSource, text) &&
+  optional(item.additionalImages, photos => Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto)) &&
+  optional(item.gallery, photos => Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto));
 
 export function isOwner(user: { email?: string; email_confirmed_at?: string | null }, ownerEmail: string) {
   return Boolean(user.email_confirmed_at && user.email &&
@@ -53,9 +66,19 @@ export function canAccess(role: Role, path: string): boolean {
 
 export function validContent(value: unknown): boolean {
   if (!record(value) || JSON.stringify(value).length > 1000000) return false;
+  const validIds = new Set([
+    ...activityIds,
+    ...(Array.isArray(value.activities)
+      ? value.activities
+          .filter(clubActivity)
+          .map((item) => String((item as RecordValue).id))
+      : []),
+  ]);
   return text(value.heroTitle) && text(value.heroDescription) && image(value.campusImage) &&
     list(value.events, item => fields(item, ["title", "type"]) &&
-      optionalFields(item, ["date", "venue", "deadline"]) && record(item) &&
+      optionalFields(item, ["date", "venue", "deadline", "description"]) && record(item) &&
+      optional(item.image, image) &&
+      optional(item.gallery, photos => Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto)) &&
       optional(item.status, status => eventStatuses.includes(status as string))) &&
     list(value.executives, executive) &&
     optional(value.clubLeadership, leaders => list(leaders, executive)) &&
@@ -68,10 +91,11 @@ export function validContent(value: unknown): boolean {
       fields(item, ["year", "title", "text"]) && record(item) && image(item.image) &&
       optional(item.images, images => Array.isArray(images) && images.length <= 15 && images.every(image)) &&
       optional(item.highlights, highlights => list(highlights, text)))) &&
+    optional(value.activities, items => Array.isArray(items) && items.length <= 24 && items.every(clubActivity)) &&
     optional(value.activityImages, images => record(images) && Object.keys(images).length <= 20 &&
-      Object.entries(images).every(([key, url]) => /^[a-z0-9-]{1,40}$/i.test(key) && image(url))) &&
-    optional(value.activityGalleries, galleries => record(galleries) && Object.keys(galleries).length <= activityIds.length &&
-      Object.entries(galleries).every(([key, photos]) => activityIds.includes(key) &&
+      Object.entries(images).every(([key, url]) => activityKey(key) && image(url))) &&
+    optional(value.activityGalleries, galleries => record(galleries) && Object.keys(galleries).length <= validIds.size &&
+      Object.entries(galleries).every(([key, photos]) => validIds.has(key) &&
         Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto))) &&
     optional(value.contactEmail, email) && optional(value.linkedinUrl, image);
 }

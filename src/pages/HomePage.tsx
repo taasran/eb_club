@@ -12,6 +12,7 @@ import LegacySlideshow from "../components/LegacySlideshow"
 import FacebookUpdates from "../components/FacebookUpdates"
 import ManagedImage from "../components/ManagedImage"
 import ActivityGallery from "../components/ActivityGallery"
+import { eventPhotos, resolveActivities } from "../activityMedia"
 import { currentClubTeam, type ClubEvent } from "../contentClient"
 import {
   committee,
@@ -59,6 +60,18 @@ export default function HomePage() {
     },
   ]
   const displayedLegacy = managedContent.legacy ?? legacyMilestones
+  const displayedActivities = resolveActivities(
+    activities,
+    managedContent.activities,
+  )
+  const displayedActivityCategories = Array.from(
+    new Set([
+      ...activityCategories,
+      ...displayedActivities
+        .map((item) => item.category.trim())
+        .filter(Boolean),
+    ]),
+  )
   const mainRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -605,7 +618,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="filters" aria-label="Filter activities">
-              {["All activities", ...activityCategories].map((item) => (
+              {["All activities", ...displayedActivityCategories].map((item) => (
                 <button
                   key={item}
                   className={filter === item ? "filter selected" : "filter"}
@@ -617,7 +630,7 @@ export default function HomePage() {
               ))}
             </div>
             <div className="activity-grid">
-              {activities
+              {displayedActivities
                 .filter(
                   (item) =>
                     filter === "All activities" || item.category === filter,
@@ -625,7 +638,7 @@ export default function HomePage() {
                 .map((item) => (
                   <article className="activity-card" key={item.id}>
                     <ActivityGallery
-                      key={`${item.id}:${JSON.stringify(managedContent.activityGalleries?.[item.id] ?? managedContent.activityImages?.[item.id] ?? "")}`}
+                      key={`${item.id}:${JSON.stringify(managedContent.activityGalleries?.[item.id] ?? item.gallery ?? managedContent.activityImages?.[item.id] ?? "")}`}
                       activity={item}
                       publishedImage={managedContent.activityImages?.[item.id]}
                       publishedGallery={
@@ -757,11 +770,34 @@ export default function HomePage() {
           </div>
           {displayedEvents.map((event, index) => {
             const status = event.status ?? "Coming Soon"
+            const photos = eventPhotos(event)
+            const cover = photos[0]
             return (
               <Div className="event-row" key={index}>
-                <Span className="event-icon">
-                  <Icon name={index % 2 === 0 ? "calendar" : "briefcase"} />
-                </Span>
+                {cover ? (
+                  <Div
+                    className={
+                      cover.kind === "poster"
+                        ? "event-row-thumb is-poster"
+                        : "event-row-thumb"
+                    }
+                  >
+                    <ManagedImage
+                      src={cover.src}
+                      alt={cover.alt || event.title}
+                      icon="calendar"
+                    />
+                    {photos.length > 1 && (
+                      <Small className="event-row-photo-count">
+                        {photos.length} photos
+                      </Small>
+                    )}
+                  </Div>
+                ) : (
+                  <Span className="event-icon">
+                    <Icon name={index % 2 === 0 ? "calendar" : "briefcase"} />
+                  </Span>
+                )}
                 <Div className="event-title">
                   <Small>
                     {event.type.toUpperCase()} ·{" "}
@@ -770,6 +806,11 @@ export default function HomePage() {
                       : "DATE TO BE ANNOUNCED"}
                   </Small>
                   <H3>{event.title}</H3>
+                  {event.description?.trim() && (
+                    <P className="event-row-description">
+                      {event.description.trim()}
+                    </P>
+                  )}
                   <Div className="event-meta">
                     <Span>
                       <Icon name="pin" /> {event.venue?.trim() || "IIUC campus"}
@@ -1034,13 +1075,68 @@ export default function HomePage() {
             </button>
             {selectedEvent ? (
               <>
-                <div className="eyebrow">LEARN. CONNECT. LEAD.</div>
-                <h2 id="modal-title">{selectedEvent}</h2>
-                <p>
-                  This is a preview of the experiences our club can offer.
-                  Dates, facilitators, and registration details will be
-                  announced by the club.
-                </p>
+                {(() => {
+                  const matchedEvent = displayedEvents.find(
+                    (item) => item.title === selectedEvent,
+                  )
+                  const matchedPhotos = matchedEvent
+                    ? eventPhotos(matchedEvent)
+                    : []
+                  return (
+                    <>
+                      <div className="eyebrow">
+                        {matchedEvent?.type?.trim()
+                          ? matchedEvent.type.toUpperCase()
+                          : "LEARN. CONNECT. LEAD."}
+                      </div>
+                      <h2 id="modal-title">{selectedEvent}</h2>
+                      {matchedEvent && matchedPhotos.length > 0 && (
+                        <Div className="event-modal-gallery">
+                          <ActivityGallery
+                            activity={{
+                              label: matchedEvent.title || "Club event",
+                              category: matchedEvent.type || "Event",
+                              icon: "calendar",
+                              image: matchedPhotos[0].src,
+                              imageKind: matchedPhotos[0].kind,
+                              imageSource: matchedPhotos[0].source ?? "",
+                              alt: matchedPhotos[0].alt,
+                              gallery: matchedPhotos,
+                            }}
+                          />
+                        </Div>
+                      )}
+                      {matchedEvent?.description?.trim() ? (
+                        <p>{matchedEvent.description.trim()}</p>
+                      ) : (
+                        <p>
+                          This is a preview of the experiences our club can
+                          offer. Dates, facilitators, and registration details
+                          will be announced by the club.
+                        </p>
+                      )}
+                      {matchedEvent && (
+                        <Div className="event-meta">
+                          {matchedEvent.date?.trim() && (
+                            <Span>
+                              <Icon name="clock" /> {matchedEvent.date.trim()}
+                            </Span>
+                          )}
+                          <Span>
+                            <Icon name="pin" />{" "}
+                            {matchedEvent.venue?.trim() || "IIUC campus"}
+                          </Span>
+                          {matchedEvent.deadline?.trim() && (
+                            <Span>
+                              <Icon name="clock" /> Register by{" "}
+                              {matchedEvent.deadline.trim()}
+                            </Span>
+                          )}
+                        </Div>
+                      )}
+                    </>
+                  )
+                })()}
                 <p>
                   Interested in taking part? Introduce yourself and tell us what
                   you would love to explore.

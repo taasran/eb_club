@@ -46,6 +46,9 @@ export function describeContentChange(before: Json | null, after: Json): { area:
   details.push(...diffList("Executive Committee", (old.executives as unknown[]) ?? [], (after.executives as unknown[]) ?? [], ["name"]))
   details.push(...diffList("Club Leadership", (old.clubLeadership as unknown[]) ?? [], (after.clubLeadership as unknown[]) ?? [], ["name"]))
   details.push(...diffList("Our Legacy", (old.legacy as unknown[]) ?? [], (after.legacy as unknown[]) ?? [], ["title", "year"]))
+  if (Array.isArray(old.activities) || Array.isArray(after.activities)) {
+    details.push(...diffList("Find your spark activities", (old.activities as unknown[]) ?? [], (after.activities as unknown[]) ?? [], ["label", "title"]))
+  }
   details.push(...diffList("Committee archive", (old.archiveYears as unknown[]) ?? [], (after.archiveYears as unknown[]) ?? [], ["year"]))
   const oldLeaders = (old.leadership ?? {}) as Json
   const newLeaders = (after.leadership ?? {}) as Json

@@ -1,0 +1,181 @@
+/* Club kit loading signature. Indeterminate motion, never a fabricated percentage. */
+.eco-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  width: min(100%, calc(var(--space-12) * 7));
+  padding: var(--space-6) var(--space-4);
+  margin-inline: auto;
+  color: var(--forest);
+  text-align: center;
+  font-family: var(--sans);
+}
+
+.eco-loader-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  width: calc(var(--space-12) * 5);
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+.eco-loader-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: var(--space-6) var(--space-6);
+  mask-image: radial-gradient(circle, black, transparent 70%);
+  opacity: .6;
+}
+
+.eco-loader-orbits {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.eco-loader-orbit-track { stroke: var(--line); stroke-width: .65; }
+.eco-loader-ticks { stroke: var(--forest); stroke-width: 2; stroke-dasharray: 1 9; opacity: .16; }
+.eco-loader-orbit { transform-origin: 120px 120px; }
+.eco-loader-orbit-arc { stroke: var(--gold); stroke-width: 1.5; stroke-dasharray: 120 527; stroke-linecap: round; }
+.eco-loader-orbit-dot { fill: var(--gold); }
+.eco-loader-inner-arc { stroke: var(--forest); stroke-width: .75; stroke-dasharray: 60 85 90 274; opacity: .45; }
+.eco-loader-inner-dot { fill: var(--forest); }
+.eco-loader-crosshair { stroke: var(--gold); stroke-width: 1; }
+
+.eco-loader-emblem {
+  display: grid;
+  place-items: center;
+  width: 55%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line));
+  border-radius: 50%;
+  /* Keep the official full-colour crest's backing light in both themes. */
+  background: var(--paper);
+  box-shadow:
+    0 0 0 var(--space-2) color-mix(in srgb, var(--forest) 3%, transparent),
+    var(--shadow-card);
+}
+
+.eco-loader-emblem img { width: 72%; height: 72%; object-fit: contain; }
+.eco-loader-coordinate {
+  position: absolute;
+  z-index: 1;
+  color: var(--muted);
+  font-size: calc(var(--space-2) * .875);
+  font-weight: 600;
+  letter-spacing: .22em;
+}
+.eco-loader-coordinate-top { top: 8%; left: -2%; }
+.eco-loader-coordinate-bottom { bottom: 8%; right: -2%; }
+
+.eco-loader-growth {
+  position: absolute;
+  bottom: -1%;
+  width: 58%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--ivory);
+  box-shadow: var(--shadow-card);
+}
+.eco-loader-growth svg { display: block; width: 100%; height: auto; overflow: visible; }
+.eco-loader-growth-axis { stroke: var(--line); stroke-width: .5; }
+.eco-loader-growth-trace { stroke: var(--forest); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.eco-loader-growth-point { fill: var(--gold); }
+
+.eco-loader-identity { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+.eco-loader-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(var(--space-2) * 1.125);
+  font-weight: 550;
+  letter-spacing: .18em;
+}
+.eco-loader-name {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--space-8);
+  line-height: 1.04;
+  letter-spacing: -.025em;
+}
+.eco-loader-period { color: var(--gold); }
+.eco-loader-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  color: var(--muted);
+  font-size: calc(var(--space-3) * .92);
+  line-height: 1.6;
+}
+.eco-loader-status-dot {
+  flex-shrink: 0;
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--forest);
+  box-shadow: 0 0 0 var(--space-1) color-mix(in srgb, var(--forest) 8%, transparent);
+}
+.eco-loader-progress {
+  width: calc(var(--space-12) * 3);
+  max-width: 80%;
+  height: 2px;
+  margin-top: calc(-1 * var(--space-2));
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+.eco-loader-progress > span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest), var(--gold));
+}
+
+.eco-loader-inline {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: middle;
+  color: inherit;
+}
+.eco-loader-inline svg { width: 100%; height: 100%; overflow: visible; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.eco-inline-track { opacity: .16; }
+.eco-inline-orbit { stroke-dasharray: 18 45; transform-origin: 12px 12px; }
+.eco-inline-trend { stroke-width: 1.5; }
+
+@keyframes eco-orbit-turn { to { transform: rotate(360deg); } }
+@keyframes eco-emblem-breathe { 50% { transform: scale(1.025); } }
+@keyframes eco-growth-draw {
+  0% { stroke-dashoffset: 1; opacity: .3; }
+  60%, 85% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: .3; }
+}
+@keyframes eco-point-breathe { 50% { opacity: .3; } }
+@keyframes eco-progress-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(360%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eco-loader-orbit { animation: eco-orbit-turn 9s linear infinite; }
+  .eco-loader-orbit-inner { animation-duration: 14s; animation-direction: reverse; }
+  .eco-loader-emblem { animation: eco-emblem-breathe 4s ease-in-out infinite; }
+  .eco-loader-growth-trace { stroke-dasharray: 1; animation: eco-growth-draw 3.6s var(--ease-out) infinite; }
+  .eco-loader-growth-point, .eco-loader-status-dot { animation: eco-point-breathe 3.6s ease-in-out infinite; }
+  .eco-loader-progress > span { animation: eco-progress-sweep 2.4s ease-in-out infinite; }
+  .eco-inline-orbit { animation: eco-orbit-turn 1.3s linear infinite; }
+}

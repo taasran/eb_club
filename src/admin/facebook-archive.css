@@ -24,6 +24,38 @@
 .fb-thumbnail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .fb-thumbnail-actions button { padding: var(--space-1) var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--ivory); color: var(--forest); font: inherit; }
 .fb-thumbnail-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.fb-gallery-add-bar, .fb-gallery-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.fb-gallery-add-bar > select { width: auto; flex: 1 1 180px; }
+.fb-gallery-link-row > input { flex: 1 1 220px; }
+.fb-spark-chooser, .fb-spark-group { display: grid; gap: var(--space-3); }
+.fb-spark-pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fb-spark-pill { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--ivory); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+.fb-spark-pill svg { width: var(--space-4); height: var(--space-4); color: var(--forest); }
+.fb-spark-pill small { padding: var(--space-1) var(--space-2); border-radius: var(--radius-pill); background: var(--sand); color: var(--muted); font-size: 10px; }
+.fb-spark-pill.is-shown { border-color: var(--forest); background: var(--white); }
+.fb-spark-pill.is-shown small { background: var(--success-surface); color: var(--forest); font-weight: 600; }
+.fb-spark-pill.is-hidden { opacity: .68; }
+.fb-spark-pill.is-template { border-style: dashed; color: var(--forest); }
+.fb-activity-editor-card { align-content: start; }
+.fb-activity-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.fb-activity-card-title { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.fb-activity-card-title svg { width: var(--space-5); height: var(--space-5); color: var(--forest); flex-shrink: 0; }
+.fb-activity-card-title small { color: var(--muted); font-size: 11px; }
+.admin-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+.admin-topbar-title, .admin-topbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.admin-topbar-pill { padding: var(--space-1) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--success-surface); color: var(--forest); font-size: 10px; font-weight: 600; }
+.admin-topbar-pill.is-dirty { background: var(--warning-surface); color: var(--warning-ink); }
+.admin-quick-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-5); }
+.admin-card { transition: border-color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out); }
+.admin-card:focus-within { border-color: var(--forest); box-shadow: var(--shadow-card); }
+.event-row-thumb { position: relative; width: var(--space-12); height: var(--space-12); border-radius: var(--radius-control); overflow: hidden; border: 1px solid var(--line); background: var(--forest-solid); flex-shrink: 0; }
+.event-row-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.event-row-thumb.is-poster { background: var(--paper); }
+.event-row-thumb.is-poster > img { object-fit: contain; }
+.event-row-photo-count { position: absolute; right: var(--space-1); bottom: var(--space-1); padding: 0 var(--space-1); border-radius: var(--radius-pill); background: var(--brand-panel); color: var(--on-brand); font-size: 8px; line-height: 1.5; }
+.event-row-description { margin-top: var(--space-2); color: var(--muted); font-size: 12px; line-height: 1.6; }
+.event-modal-gallery { margin: var(--space-4) 0; border-radius: var(--radius-control); overflow: hidden; }
+.event-modal-gallery .activity-photo { margin: 0; border-radius: var(--radius-control); }
 @media (max-width: 760px) {
   .fb-photo-grid, .fb-post-options { grid-template-columns: 1fr; }
   .fb-gallery-thumbnails { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }

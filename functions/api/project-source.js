@@ -2,7 +2,7 @@ import {
   sourceInfo,
   sourceArchive,
 } from "../../private-downloads/source-snapshot.mjs"
-import { serveProjectSource } from "../../netlify/lib/project-source.mjs"
+import { serveProjectSource } from "../lib/project-source.mjs"
 
 const toResponse = ({ statusCode, headers, body, isBase64Encoded }) =>
   new Response(

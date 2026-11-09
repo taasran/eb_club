@@ -1,1 +1,2 @@
+# Host redirects are handled by functions/_middleware.js, not path-only rules.
 /*    /index.html   200

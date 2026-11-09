@@ -1,7 +1,8 @@
 # IIUC Economics & Banking Club
 
 React 19, TypeScript, Vite and Tailwind CSS v4. The public site and admin
-dashboard share a Supabase API; Netlify serves the built frontend.
+dashboard share a Supabase Edge Function backend; Cloudflare Pages serves the
+frontend at `https://ebclub.iiuc.ac.bd`.
 
 ## Start here
 
@@ -41,7 +42,7 @@ For a separate local checkout, `pnpm dev` starts Vite.
 | `src/theme.ts`, `src/theme.css` | Browser-local theme preference, semantic night palette and themed surfaces |
 | `src/admin/auth.css`, `src/admin/AuthAtmosphere.tsx` | Responsive animated content-studio entrance |
 | `supabase/functions/server/` | API, authorization and validation |
-| `public/` | Static assets, sitemap, robots, Netlify headers and redirects |
+| `public/` | Static assets, sitemap, robots, Cloudflare Pages headers and redirects |
 | `.github/workflows/deploy.yml` | Checks and production deployment on a `main` push |
 
 The generated files `utils/supabase/info.tsx` and
@@ -86,7 +87,7 @@ and its JSON metadata outside the published `dist` directory.
 For source edits visible only in the Make preview, run `pnpm run source:export`
 to refresh the snapshot without publishing. This does not push to GitHub.
 
-The Netlify `project-source` function validates the bearer session against the
+The `project-source` Pages Function validates the bearer session against the
 club backend's `/admin/session` on every metadata/download request. It rejects
 pending or revoked users, never publicly caches the response, and bundles the
 private snapshot as a static function-bundle dependency. No new deployment secret is

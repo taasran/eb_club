@@ -4,7 +4,7 @@ import Icon from "./Icon"
 
 const { Div, Img, Span } = AdminControls
 
-/** Never request a demo image while the published media selection is loading. */
+/** Waits for published content before requesting an image and renders a fallback state on error. */
 export default function ManagedImage({
   src,
   alt,

@@ -4,9 +4,54 @@
 
 `.github/workflows/deploy.yml` checks pull requests. A push to the GitHub
 repository's `main` branch runs the same checks, builds the frontend, deploys the
-Supabase function and finally publishes `dist/` and the protected source-download
-Netlify function to the existing Netlify site.
+Supabase Edge Function and publishes `dist/` (along with `./functions`) to
+Cloudflare Pages (`ebclubiiuc`).
 Failed checks stop deployment. Production deploys are serialized.
+
+## Production domain
+
+The canonical site is **https://ebclub.iiuc.ac.bd**. Keep the existing
+Cloudflare Pages project `ebclubiiuc` and the university DNS record:
+
+```text
+ebclub.iiuc.ac.bd CNAME ebclubiiuc.pages.dev
+```
+
+`functions/_middleware.js` permanently redirects the exact production alias
+`ebclubiiuc.pages.dev` to the custom domain. GET/HEAD requests receive 301;
+other methods use 308 to preserve their request method/body. Paths and query
+strings are preserved. The custom domain and development/preview hosts pass
+through without redirecting. The alias remains a DNS/hosting target, not a
+second public site. Do not delete the project or remove the CNAME target.
+
+Hostname redirects cannot be expressed in Cloudflare's path-only `_redirects`
+file. Deploy the root Pages middleware with the frontend using the existing
+Wrangler workflow; copying only `dist/` without `functions/` will omit the
+redirect. Root middleware executes on all requests, including static assets,
+so monitor the Pages Functions request allowance for the account.
+
+The owner's Supabase Auth configuration must use:
+
+- Site URL: `https://ebclub.iiuc.ac.bd`
+- Redirect URLs: `https://ebclub.iiuc.ac.bd/admin` and
+  `https://ebclub.iiuc.ac.bd/admin/reset-password`
+
+Users must sign in again on the new origin; browser-local login sessions and
+theme settings do not transfer between domains. Accounts and saved club
+content remain in the same Supabase project. Previously issued recovery
+emails may point to the old origin; request a fresh email on the new domain.
+
+After deployment, verify:
+
+```sh
+curl -I 'https://ebclubiiuc.pages.dev/admin?from=old'
+# 301; Location: https://ebclub.iiuc.ac.bd/admin?from=old
+curl -I 'https://ebclub.iiuc.ac.bd/'
+# Serves the site; no redirect back to pages.dev
+```
+
+Check profile deep links, login, recovery, Facebook embeds and protected ZIP
+downloads on the new domain. A Make preview build does not publish this change.
 
 This workflow cannot see uncommitted Figma Make edits. This workspace's current
 `origin` is Figma-managed, not `taasran/eb_club`; saving a Make prompt does not
@@ -27,8 +72,8 @@ or verified** until the repository connection and credentials below are set.
 
    | Secret | Value |
    | --- | --- |
-   | `NETLIFY_AUTH_TOKEN` | Netlify personal access token with deployment access |
-   | `NETLIFY_SITE_ID` | ID of the existing `ebclubiiuc` site, not its URL |
+   | `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Pages deployment access |
+   | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID for the `ebclubiiuc` project |
    | `SUPABASE_ACCESS_TOKEN` | Supabase access token authorized for the connected project |
 
 4. The workflow defaults to Supabase project `ywwyzqlqmpcosiuszowt`. If it changes,
@@ -40,7 +85,7 @@ or verified** until the repository connection and credentials below are set.
    ownership. The existing Make-connected project already provides the runtime
    Supabase credentials.
 6. In GitHub **Actions → Check and deploy**, run the workflow on `main`. Verify
-   all steps turn green and Netlify shows a new published deploy.
+   all steps turn green and Cloudflare Pages shows a new published deploy.
 
 Never paste these tokens into chat, commit them, or put them in `VITE_*`
 variables. Review which repository collaborators may push to `main`, because
@@ -49,19 +94,15 @@ they can trigger production deployments. Use branch protection/reviews if needed
 ## Avoid duplicate deployments
 
 Choose one frontend deployment mechanism. The supplied workflow publishes the
-already-tested build through Netlify CLI. If the Netlify site also has native
-Git builds enabled for every push, stop those automatic native builds in the
-Netlify dashboard after confirming this workflow succeeds. Otherwise the same
-commit may deploy twice and consume extra credits.
-
-`netlify.toml` also defines the correct build command and output directory for a
-developer who deliberately chooses native Netlify Git builds instead. Native
-Netlify builds alone do not deploy the Supabase backend.
+already-tested build through Wrangler CLI (`wrangler pages deploy dist`). If the
+Cloudflare Pages project also has automatic Git builds enabled for every push,
+disable duplicate automatic builds in the Cloudflare dashboard after confirming
+this workflow succeeds.
 
 The build creates `private-downloads/` outside `dist/`. Do not copy this directory
 into the public site or replace the download function with a static ZIP link.
-The build creates a private `source-snapshot.mjs` dependency; the workflow's
-`--functions=netlify/functions` bundles it inside the protected endpoint.
+The build creates a private `source-snapshot.mjs` dependency that Wrangler
+bundles inside `./functions/api/project-source.js`.
 Old public download aliases are forced through that endpoint
 by `public/_redirects`; preserve these rules above the SPA fallback.
 
@@ -73,12 +114,11 @@ Reviewed source update reaches GitHub main
   → regression tests and TypeScript
   → production build
   → Supabase backend deployment
-  → Netlify frontend deployment
+  → Cloudflare Pages frontend deployment
 ```
 
 No production credentials are exposed to pull-request checks. The CLI versions
-are pinned in the workflow; update them deliberately. Each production deployment
-can consume Netlify credits. Content-only changes from the admin dashboard do
+are pinned in the workflow; update them deliberately. Content-only changes from the admin dashboard do
 not trigger a build or deployment.
 
 ## Troubleshooting and rollback
@@ -87,13 +127,10 @@ not trigger a build or deployment.
 - **Missing secret:** add the named secret through GitHub Settings, then rerun.
 - **Supabase deployment failed:** check token/project access and
   `supabase/config.toml`. The frontend step will not run after this failure.
-- **Frontend deployment failed:** check Netlify token/site access. The backend
+- **Frontend deployment failed:** check Cloudflare token/account access. The backend
   may already be updated; the two services do not deploy atomically.
-- **Wrong frontend project:** confirm `NETLIFY_SITE_ID` points to the existing
-  site before enabling automation. Do not create a replacement site.
-- **Rollback:** republish a previous successful frontend deploy from Netlify,
+- **Wrong frontend project:** confirm `CLOUDFLARE_PROJECT_NAME` (`ebclubiiuc`) points to the existing
+  project before enabling automation. Do not create a replacement project.
+- **Rollback:** roll back to a previous successful deployment in Cloudflare Pages,
   then use a reviewed revert commit for source/backend changes. Republishing
   only the frontend does not roll back database content or the backend.
-
-Figma Make's **Publish** is separate. Its existing `.figma/make/deploy` script
-publishes through Make; it does not secretly push to GitHub or Netlify.

@@ -1,9 +1,9 @@
 # Club admin backend
 
 Deploy `supabase/functions/server` using the connected project's Supabase
-edge-function deployment option in **Figma Make settings**. The frontend expects
-the function name `make-server-ad6cf477`. Publishing the frontend to Netlify
-alone does not deploy this backend.
+CLI or GitHub Actions workflow. The frontend expects the function name
+`make-server-ad6cf477`. Publishing the frontend to Cloudflare Pages alone does
+not deploy this backend.
 
 ## Owner authorization
 
@@ -16,7 +16,7 @@ it. Never put the service-role key in frontend code.
 Creating an account does not grant admin rights. If email confirmation is
 enabled, confirm the owner's email before signing in. This authorization grants
 access to this application's dashboard only; it does not transfer ownership of
-Supabase, GitHub, Netlify, or Figma accounts.
+Supabase, GitHub, or Cloudflare accounts.
 
 The owner uses **Account requests** to review registered profiles, approve an
 admin/moderator role, change that role, or delete an account.
@@ -68,8 +68,8 @@ reset it. Password reset does not change any approval or role.
 
 - Enable the email provider and new-user signup.
 - In **Authentication → URL Configuration**, allow both redirect URLs:
-  `https://ebclubiiuc.pages.dev/admin` and
-  `https://ebclubiiuc.pages.dev/admin/reset-password`; use the public site as the Site URL.
+  `https://ebclub.iiuc.ac.bd/admin` and
+  `https://ebclub.iiuc.ac.bd/admin/reset-password`; use the public site as the Site URL.
   Authentication callbacks deliberately do not use the private Make preview.
 - Ensure the email templates for signup confirmation and password recovery include
   the actual confirmation link, rather than only a numeric OTP.
@@ -106,9 +106,8 @@ and every 30 seconds while visible. They preserve the last successful content
 on transient failures. Saved empty arrays are intentional deletions and do not
 restore placeholder events, executives, or archives.
 
-Publish the updated frontend to Netlify once to install this behavior. The
-Make preview and Netlify are separate deployments; editing preview code does
-not update an existing Netlify deployment. After both frontend and backend are
+Publish the updated frontend to Cloudflare Pages to install this behavior.
+Preview and production are separate deployments; after both frontend and backend are
 current, ordinary content edits only require **Save changes**, not a new
 frontend deployment.
 

@@ -13,14 +13,12 @@ const sourceFolders = [
   "docs",
   "guidelines",
   ".github",
-  "netlify",
   "functions",
 ]
 const rootFiles = [
   "package.json",
   "pnpm-lock.yaml",
   "index.html",
-  "netlify.toml",
   "tsconfig.json",
   "tsconfig.types.json",
   "vite.config.ts",
@@ -147,7 +145,7 @@ dependencies, build output or nested downloadable archives.
 
 The Supabase browser anon key is public configuration, not a service-role key.
 Never add private credentials to this archive. Downloads require an approved
-club owner, admin or moderator session through the Netlify function.
+club owner, admin or moderator session.
 
 Extract first and preserve the project folder structure. Do not delete your
 cloned repository's .git folder. Review changes before committing and pushing.

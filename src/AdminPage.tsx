@@ -518,7 +518,9 @@ export default function AdminPage() {
       "submitted",
       ...Array.from(new Set(items.flatMap((item) => Object.keys(item.data)))),
     ]
-    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`
+    // Quoting alone does not stop spreadsheet formulas in untrusted form submissions.
+    const escape = (value: string) =>
+      `"${(/^[\s]*[=+\-@]/.test(value) ? "'" : "") + value.replace(/"/g, '""')}"`
     const rows = items.map((item) =>
       keys
         .map((key) =>
@@ -564,7 +566,7 @@ export default function AdminPage() {
           error:
             body?.error ??
             (response.status === 404
-              ? "The server is still running an old version (admin routes not found). Redeploy the Supabase edge function from Make settings."
+              ? "The backend is running an older version (admin routes not found). Redeploy the Supabase edge function and try again."
               : "Unable to verify admin access. Deploy the Supabase edge function and try again."),
         }
       }

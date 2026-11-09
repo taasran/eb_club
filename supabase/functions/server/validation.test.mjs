@@ -100,6 +100,13 @@ for (const invalid of [
 ]) assert.equal(validContent({ ...content, activityGalleries: invalid }), false);
 const indexSource = readFileSync(new URL("./index.tsx", import.meta.url), "utf8");
 const legacyMilestone = { year: "2025", title: "Club milestone", text: "Our programme", image: "", gallery: [galleryPhoto] };
+for (const unsafeUrl of ["javascript:alert(1)", "https://user:password@example.com/photo.jpg", "https://example.com/photo.jpg?secret=fixture", "https://example.com/\nphoto.jpg"]) {
+  assert.equal(validContent({ ...content, campusImage: unsafeUrl }), false);
+}
+const activityWithSource = { id: "workshops", category: "Learning", label: "Workshop", title: "Workshop", text: "Club programme", icon: "chart", alt: "Workshop photo", image: "", imageKind: "photo" };
+assert.equal(validContent({ ...content, activities: [{ ...activityWithSource, imageSource: "https://www.facebook.com/posts/123" }] }), true);
+assert.equal(validContent({ ...content, activities: [{ ...activityWithSource, imageSource: "javascript:alert(1)" }] }), false);
+assert.equal(validContent({ ...content, activities: [{ ...activityWithSource, imageSource: "https://evil.example.com/post" }] }), false);
 assert.equal(validContent({ ...content, legacy: [legacyMilestone] }), true);
 assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: [] }] }), true);
 assert.equal(validContent({ ...content, legacy: [{ ...legacyMilestone, gallery: Array(16).fill(galleryPhoto) }] }), false);
@@ -113,3 +120,4 @@ await import("./facebook.test.mjs");
 await import("./facebook-diagnostics.test.mjs");
 await import("./facebook-shared.test.mjs");
 await import("./facebook-archive.test.mjs");
+await import("./security.test.mjs");

@@ -2,10 +2,10 @@ import { supabase } from "../supabase"
 import { adminSignInUrl } from "./onboarding"
 
 // The Make dev server serves the same protected endpoint (see vite.config.ts),
-// so the preview downloads current code; production uses the Netlify function.
+// so the preview downloads current code; production uses the Cloudflare Pages function.
 // `env` is absent when Node tests import this module outside Vite.
 const endpoint = import.meta.env?.DEV
-  ? "/.netlify/functions/project-source"
+  ? "/api/project-source"
   : new URL("/api/project-source", adminSignInUrl).toString()
 
 export async function requestProjectSource(
@@ -30,7 +30,7 @@ export async function requestProjectSource(
     const body = await response.json().catch(() => null)
     throw new Error(
       body?.error ??
-        "The protected download service is not ready. Deploy the latest frontend and Netlify function first.",
+        "The protected download service is not ready. Deploy the latest frontend and Cloudflare Pages function first.",
     )
   }
   return response

@@ -1,4 +1,4 @@
-const origin = "https://ebclubiiuc.pages.dev"
+import { siteOrigin as origin } from "./site"
 const homeTitle =
   "IIUC Economics & Banking Club | Learning, Leadership & Community"
 const homeDescription =

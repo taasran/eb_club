@@ -51,12 +51,12 @@ react(),
 })
 
 /**
- * Dev-only twin of netlify/functions/project-source.mjs. It builds a fresh
+ * Dev-only twin of functions/api/project-source.js. It builds a fresh
  * snapshot of the current workspace on every request and uses the same
  * Supabase role check, so approved admins can download code from the preview.
  */
 function projectSourcePreviewEndpoint(): Plugin {
-  const ROUTE = '/.netlify/functions/project-source'
+  const ROUTE = '/api/project-source'
   return {
     name: 'eb-club-project-source-preview',
     apply: 'serve',
@@ -66,7 +66,7 @@ function projectSourcePreviewEndpoint(): Plugin {
         if (url.pathname !== ROUTE) return next()
         try {
           const load = (file: string) => import(/* @vite-ignore */ pathToFileURL(path.resolve(__dirname, file)).href)
-          const { serveProjectSource } = await load('netlify/lib/project-source.mjs')
+          const { serveProjectSource } = await load('functions/lib/project-source.mjs')
           const { exportProjectSource } = await load('scripts/export-source.mjs')
           let snapshot: { info: unknown; archive: Uint8Array } | undefined
           const build = () => (snapshot ??= exportProjectSource(__dirname, { write: false }))

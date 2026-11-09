@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { serveProjectSource as serve } from "../netlify/lib/project-source.mjs"
+import { serveProjectSource as serve } from "../functions/lib/project-source.mjs"
 
 const info = {
   serverUrl:
@@ -62,6 +62,8 @@ for (const role of ["owner", "admin", "moderator"]) {
   assert.equal(response.isBase64Encoded, true)
   assert.deepEqual(Buffer.from(response.body, "base64"), archive)
   assert.match(response.headers["Cache-Control"], /no-store/)
+  assert.equal(response.headers["X-Content-Type-Options"], "nosniff")
+  assert.match(response.headers["Content-Security-Policy"], /default-src 'none'/)
   assert.equal(verifiedHeaders.Authorization, event.headers.authorization)
 }
 const metadata = await serveProjectSource(
@@ -103,6 +105,12 @@ const invalidTarget = await serveProjectSource(event, {
 })
 assert.equal(invalidTarget.statusCode, 503)
 assert.equal(invalidTargetRequested, false)
+const throttled = await serveProjectSource(event, {
+  request: async () => new Response("{}", { status: 429, headers: { "Retry-After": "20" } }),
+})
+assert.equal(throttled.statusCode, 429)
+assert.equal(throttled.headers["Retry-After"], "20")
 console.log(
   "PASS: source download denies anonymous/pending/revoked users, allows verified owner/admin/moderator, rechecks grants, and never publicly caches ZIPs.",
 )
+await import("./domain.test.mjs")

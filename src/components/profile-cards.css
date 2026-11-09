@@ -314,7 +314,7 @@
 }
 .profile-disclosure[open] .profile-details-pill svg { rotate: 180deg; }
 
-/* Opening the profile reveals real saved content, not invented social stats. */
+/* Inline details block inside profile cards. */
 .profile-card .executive-reveal {
   position: static;
   inset: auto;

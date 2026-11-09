@@ -266,6 +266,8 @@ try {
   assert.equal(signupArgs.email, "applicant@example.com")
   assert.equal(signupArgs.password, "SafePassword123")
   assert.equal(signupArgs.options.emailRedirectTo, adminSignInUrl)
+  assert.equal(adminSignInUrl, "https://ebclub.iiuc.ac.bd/admin")
+  assert.equal(passwordResetUrl, "https://ebclub.iiuc.ac.bd/admin/reset-password")
   assert.deepEqual(signupArgs.options.data, {
     full_name: "New Applicant",
     matric_id: "EB123",
@@ -614,6 +616,8 @@ try {
   assert.match(downloadCard, /type="button"/)
   assert.doesNotMatch(downloadCard, /href="\/downloads\/eb-club-source\.zip"/)
   assert.match(downloadCard, /not a database/)
+  assert.match(downloadCard, /Download latest project code \(\.zip\)/)
+  assert.doesNotMatch(downloadCard, /Download Figma Design|Download Design Package|Design downloads|iiuc-eb-club-figma-design\.svg|iiuc-eb-club-design-package\.zip/)
   const authReact = write(
     "authReact",
     `
@@ -634,6 +638,7 @@ try {
     })
   )
   const signInHtml = renderToStaticMarkup(createElement(SignInPage))
+  assert.doesNotMatch(signInHtml, /Download Figma Design|Download Design Package|Download latest project code|PROJECT FILES/)
   assert.match(signInHtml, /Forgot password/)
   assert.match(signInHtml, /Create account/)
   assert.match(signInHtml, /role="switch" aria-label="Night mode"/)
@@ -717,6 +722,20 @@ try {
   assert.doesNotMatch(teamHtml, /Copy login link|Open email draft/)
   globalThis.__clubContentFixture = fixture
   let html = renderToStaticMarkup(createElement(App))
+  const previousWindow = globalThis.window
+  try {
+    for (const hostname of ["ebclub.iiuc.ac.bd", "ebclubiiuc.pages.dev", "preview.ebclubiiuc.pages.dev", "localhost"]) {
+      globalThis.window = { location: { hostname } }
+      const homepage = renderToStaticMarkup(createElement(App))
+      assert.doesNotMatch(homepage, /Owner:|Download Figma Design|Download Design Package|Owner Admin Panel|iiuc-eb-club-design-package\.zip|iiuc-eb-club-figma-design\.svg/)
+      assert.match(homepage, /href="\/admin"/)
+      assert.match(homepage, /role="switch" aria-label="Night mode"/)
+      assert.match(homepage, /hero-club-seal/)
+    }
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window
+    else globalThis.window = previousWindow
+  }
   assert.match(html, /Our updated club/)
   assert.match(html, /Saved introduction/)
   assert.match(html, /Third saved event/)

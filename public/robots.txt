@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ebclubiiuc.pages.dev/sitemap.xml
+Sitemap: https://ebclub.iiuc.ac.bd/sitemap.xml

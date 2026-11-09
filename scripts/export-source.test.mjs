@@ -23,7 +23,7 @@ try {
     ".figma/make/site.json": "{}",
     ".github/workflows/deploy.yml": "name: Fixture",
     "utils/supabase/info.tsx": 'export const projectId = "testproject"',
-    "netlify/functions/project-source.mjs": "export const handler = () => {}",
+    "functions/api/project-source.js": "export const onRequest = () => {}",
     ".env": "PRIVATE_TOKEN=do-not-export",
     "src/.env.local": "PRIVATE_TOKEN=do-not-export",
     ".git/config": "private-git-config",
@@ -60,7 +60,7 @@ try {
     "export const uncommitted = true",
   )
   assert(files[".github/workflows/deploy.yml"])
-  assert(files["netlify/functions/project-source.mjs"])
+  assert(files["functions/api/project-source.js"])
   for (const oldName of [
     "eb-club-source.zip",
     "eb-club-website.zip",

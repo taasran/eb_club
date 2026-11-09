@@ -1,6 +1,6 @@
 # Project source snapshot
 
-Generated: 2026-10-30T18:47:48.877Z
+Generated: 2026-11-09T17:18:54.923Z
 Backend source version: club-admin-v4
 
 Includes frontend, backend, workflow, tests and static assets. Does not include
@@ -9,7 +9,7 @@ dependencies, build output or nested downloadable archives.
 
 The Supabase browser anon key is public configuration, not a service-role key.
 Never add private credentials to this archive. Downloads require an approved
-club owner, admin or moderator session through the Netlify function.
+club owner, admin or moderator session.
 
 Extract first and preserve the project folder structure. Do not delete your
 cloned repository's .git folder. Review changes before committing and pushing.

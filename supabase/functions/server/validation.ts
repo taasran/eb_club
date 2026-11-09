@@ -2,8 +2,15 @@ type RecordValue = Record<string, unknown>;
 const record = (value: unknown): value is RecordValue =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const text = (value: unknown) => typeof value === "string" && value.length <= 10000;
-const image = (value: unknown) => typeof value === "string" &&
-  (value === "" || /^https?:\/\/[^\s]+$/i.test(value));
+const image = (value: unknown) => {
+  if (value === "") return true;
+  if (typeof value !== "string" || value.length > 6000 || /\s/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password &&
+      ![...url.searchParams.keys()].some(key => /token|secret/i.test(key));
+  } catch { return false; }
+};
 const list = (value: unknown, check: (item: unknown) => boolean) =>
   Array.isArray(value) && value.length <= 300 && value.every(check);
 const fields = (value: unknown, keys: string[]) =>
@@ -22,6 +29,12 @@ const executive = (item: unknown) => fields(item, ["name", "designation", "stude
 const activityIds = ["workshops", "industrial-visits", "leadership", "tournaments", "health-camp", "tours"];
 const activityKey = (value: unknown) => typeof value === "string" && /^[a-z0-9-]{1,40}$/i.test(value);
 const activityIcons = ["chart", "briefcase", "people", "flag", "heart", "pin", "target", "handshake", "clock"];
+const facebookSource = (value: unknown) => {
+  if (value === "") return true;
+  if (typeof value !== "string" || value.length > 2000 || !image(value)) return false;
+  const url = new URL(value);
+  return url.protocol === "https:" && ["facebook.com", "www.facebook.com", "m.facebook.com"].includes(url.hostname);
+};
 const galleryPhoto = (item: unknown) => {
   if (!record(item) || typeof item.src !== "string" || !item.src ||
     !(image(item.src) || /^\/images\/activities\/[a-z0-9-]+\.webp$/.test(item.src)) ||
@@ -48,7 +61,7 @@ const clubActivity = (item: unknown) =>
   optional(item.enabled, enabled => typeof enabled === "boolean") &&
   (item.image === "" || image(item.image) || /^\/images\/activities\/[a-z0-9-]+\.webp$/.test(String(item.image))) &&
   ["photo", "poster"].includes(String(item.imageKind ?? "photo")) &&
-  optional(item.imageSource, text) &&
+  optional(item.imageSource, facebookSource) &&
   optional(item.additionalImages, photos => Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto)) &&
   optional(item.gallery, photos => Array.isArray(photos) && photos.length <= 30 && photos.every(galleryPhoto));
 

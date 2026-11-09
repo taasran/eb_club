@@ -8,6 +8,7 @@ import { describeContentChange, type ActivityEntry } from "./audit.ts";
 import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount, AccountAccessError } from "./account_access.ts";
 import { createFacebookFeed } from "./facebook.ts";
 import { createFacebookArchive, FacebookArchiveError } from "./facebook_archive.ts";
+import { createRequestLimiter, publicQuota, adminQuota, SecurityLimitError, validSubmission } from "./security.ts";
 
 const app = new Hono<{ Variables: { ownerEmail: string; role: Role; actorName: string } }>();
 const base = "/make-server-ad6cf477";
@@ -20,9 +21,35 @@ const db = () => createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
+const limitRequest = createRequestLimiter({
+  slots: async (prefix) => {
+    const { data, error } = await db().from("kv_store_ad6cf477").select("key").like("key", `${prefix}%`);
+    if (error) throw new Error("Quota lookup failed.");
+    return (data ?? []).map((row) => row.key);
+  },
+  reserve: async (key) => {
+    const { error } = await db().from("kv_store_ad6cf477").insert({ key, value: true });
+    if (error?.code === "23505") return false;
+    if (error) throw new Error("Quota reservation failed.");
+    return true;
+  },
+  prune: async (before) => {
+    const { error } = await db().from("kv_store_ad6cf477").delete().gte("key", "eb:security:rate:").lt("key", before);
+    if (error) throw new Error("Quota cleanup failed.");
+  },
+});
+
+app.use("/*", async (c, next) => {
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  c.header("Cache-Control", "no-store");
+  await next();
+});
 app.use("/*", cors({
   origin: "*",
   allowHeaders: ["Content-Type", "Authorization"],
+  exposeHeaders: ["Retry-After"],
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 }));
 app.use("/*", bodyLimit({
@@ -30,13 +57,34 @@ app.use("/*", bodyLimit({
   onError: (c) => c.json({ error: "Request is too large." }, 413),
 }));
 app.onError((error, c) => {
+  if (error instanceof SecurityLimitError) {
+    c.header("Retry-After", String(error.retryAfter));
+    return c.json({ error: error.message }, error.status);
+  }
   if (error instanceof AccountAccessError) return c.json({ error: error.message }, error.status);
   if (error instanceof FacebookArchiveError) return c.json({ error: error.message }, error.status);
   // Never send database details or credentials to the browser.
-  console.error("Club API request failed:", error.message);
+  console.error("Club API request failed.");
   return c.json({ error: "The server could not complete this request. Please try again." }, 500);
 });
 app.notFound((c) => c.json({ error: "API route not found. Deploy the latest club backend." }, 404));
+
+app.use(`${base}/public/*`, bodyLimit({
+  maxSize: 4096,
+  onError: (c) => c.json({ error: "Public form requests must be smaller than 4 KB." }, 413),
+}));
+app.use(`${base}/public/*`, async (c, next) => {
+  if (c.req.method === "POST") {
+    const quota = publicQuota(c.req.path);
+    if (quota) {
+      if (!c.req.header("Content-Type")?.toLowerCase().startsWith("application/json")) {
+        return c.json({ error: "Send this request as JSON." }, 415);
+      }
+      await limitRequest(quota);
+    }
+  }
+  await next();
+});
 
 app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v4" }));
 
@@ -58,6 +106,9 @@ app.use(`${base}/admin/*`, async (c, next) => {
   c.header("Cache-Control", "no-store");
   const token = c.req.header("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return c.json({ error: "Please sign in." }, 401);
+  if (token.length > 8192) return c.json({ error: "Invalid session." }, 401);
+  // Bound Auth lookups too; origin headers are not an authorization mechanism.
+  await limitRequest({ scope: "admin-auth", limit: 600, windowMs: 60000 });
   const { data, error } = await db().auth.getUser(token);
   if (error || !data.user) return c.json({ error: "Your session has expired. Please sign in again." }, 401);
   const ownerEmail = Deno.env.get("ADMIN_OWNER_EMAIL") ?? "tasranurrahaman@gmail.com";
@@ -72,6 +123,7 @@ app.use(`${base}/admin/*`, async (c, next) => {
       : member?.status === "removed" && member?.userId === data.user.id ? "Your dashboard access has been removed."
       : "Your account is awaiting owner approval. You cannot access the dashboard until it is approved." }, 403);
   }
+  await limitRequest(adminQuota(c.req.path, c.req.method), data.user.id);
   c.set("ownerEmail", email);
   c.set("role", role);
   c.set("actorName", String(data.user.user_metadata?.full_name ?? "").trim().slice(0, 100));
@@ -86,7 +138,7 @@ async function logActivity(c: { get(key: "ownerEmail" | "role" | "actorName"): s
     const entry: ActivityEntry = { id, at, actor: c.get("ownerEmail"), actorName: c.get("actorName"), role: c.get("role"), action, area, details };
     await kv.set(`eb:audit:${id}`, entry);
   } catch (error) {
-    console.error("Activity log failed:", (error as Error).message);
+    console.error("Activity log failed.");
   }
 }
 
@@ -175,28 +227,18 @@ app.put(`${base}/admin/content`, async (c) => {
 
 app.post(`${base}/public/submit`, async (c) => {
   const body = await c.req.json().catch(() => null);
-  if (!body || !["join", "newsletter"].includes(body.type)) {
-    return c.json({ error: "Invalid submission type." }, 400);
-  }
-  const fields = body.type === "join" ? ["name", "email", "studentId", "batch"] : ["email"];
-  const data: Record<string, string> = {};
-  for (const key of fields) {
-    const value = body.data?.[key];
-    if (typeof value !== "string" || !value.trim() || value.length > 250) {
-      return c.json({ error: `Please enter a valid ${key}.` }, 400);
-    }
-    data[key] = value.trim();
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    return c.json({ error: "Please enter a valid email address." }, 400);
-  }
+  const submission = validSubmission(body);
+  if (!submission) return c.json({ error: "Please enter valid submission details without control characters." }, 400);
+  const { type, data } = submission;
   // Stable keys deduplicate repeat submissions without exposing the email in keys.
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.email.toLowerCase()));
-  const id = `${body.type}-${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;
+  const id = `${type}-${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;
   const key = `eb:submission:${id}`;
-  if (!await kv.get(key)) {
-    await kv.set(key, { id, type: body.type, data, createdAt: new Date().toISOString() });
-  }
+  const { error } = await db().from("kv_store_ad6cf477").upsert(
+    { key, value: { id, type, data, createdAt: new Date().toISOString() } },
+    { onConflict: "key", ignoreDuplicates: true },
+  );
+  if (error) throw new Error("Submission could not be stored.");
   return c.json({ ok: true });
 });
 

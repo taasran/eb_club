@@ -81,8 +81,8 @@ export default function ProjectDownload() {
       <P className="admin-muted">
         Source code only—not a database, account or uploaded-media backup.
         Private environment files and Git history are excluded. The source
-        version does not indicate which backend is live. Every download requires
-        an approved owner, admin or moderator session.
+        version does not indicate which backend is live. Project code downloads
+        require an approved owner, admin or moderator session.
       </P>
     </Div>
   )

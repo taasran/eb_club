@@ -152,39 +152,9 @@ export default function HomePage() {
     setJoinOpen(true)
     setMenuOpen(false)
   }
-  const isPreviewHost =
-    typeof window !== "undefined" &&
-    window.location.hostname !== "ebclubiiuc.pages.dev"
-
   return (
     <div className={ambientPaused ? "site-shell motion-paused" : "site-shell"}>
       <EconomicsBackdrop />
-      {isPreviewHost && (
-        <div className="topline">
-          <span>
-            <strong>Owner:</strong> Tasranur Rahaman (Batch 26th · EB253022)
-          </span>
-          <span className="flex flex-wrap items-center gap-3">
-            <a
-              className="button primary small"
-              href="/downloads/iiuc-eb-club-figma-design.svg"
-              download="iiuc-eb-club-figma-design.svg"
-            >
-              Download Figma Design (.svg)
-            </a>
-            <a
-              className="button secondary small"
-              href="/downloads/iiuc-eb-club-design-package.zip"
-              download="iiuc-eb-club-design-package.zip"
-            >
-              Download Design Package (.zip)
-            </a>
-            <a className="button secondary small" href="/admin">
-              Owner Admin Panel
-            </a>
-          </span>
-        </div>
-      )}
       <div className="topline">
         <span>A community of curious minds. A future of possibilities.</span>
         <span>

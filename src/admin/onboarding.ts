@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { siteOrigin } from "../site"
 
-export const adminSignInUrl = "https://ebclubiiuc.pages.dev/admin"
+export const adminSignInUrl = `${siteOrigin}/admin`
 export const passwordResetUrl = `${adminSignInUrl}/reset-password`
 
 export type AccountProfile = {

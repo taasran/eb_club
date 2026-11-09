@@ -1848,6 +1848,62 @@ try {
     2,
     "Preserve both Google Search Console verification tags.",
   )
+  const guardReact = write("guardReact", `
+    export function useState(initial) { return [initial, () => {}]; }
+    export function useRef(initial) { return { current: initial === null ? {} : initial }; }
+    export function useEffect(effect) { globalThis.__formSecurityEffect = effect; }
+  `)
+  const { default: FormSecurity } = await import(compile("components/FormSecurity", {
+    react: guardReact,
+    "src/supabase.ts": supabase,
+  }))
+  const previousGuardFetch = globalThis.fetch
+  const previousGuardWindow = globalThis.window
+  let widgetOptions
+  let removedWidgets = 0
+  let requireGuard = true
+  const guardStates = []
+  try {
+    globalThis.window = {
+      turnstile: {
+        render(_element, options) { widgetOptions = options; return "fixture-widget" },
+        remove(id) { assert.equal(id, "fixture-widget"); removedWidgets++ },
+      },
+    }
+    globalThis.fetch = async (url) => {
+      assert.equal(url, "https://test.invalid/public/form-security")
+      return new Response(JSON.stringify({
+        required: requireGuard, siteKey: requireGuard ? "fixture-site-key" : null,
+      }))
+    }
+    FormSecurity({ action: "join", resetKey: 0, onChange: (state) => guardStates.push(state) })
+    const cleanup = globalThis.__formSecurityEffect()
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(widgetOptions.action, "join")
+    assert.equal(widgetOptions.sitekey, "fixture-site-key")
+    assert.equal(widgetOptions["response-field"], false)
+    widgetOptions.callback("fixture-client-token")
+    assert.deepEqual(guardStates.at(-1), { status: "required", token: "fixture-client-token" })
+    widgetOptions["expired-callback"]()
+    assert.deepEqual(guardStates.at(-1), { status: "required", token: "" })
+    widgetOptions["error-callback"]()
+    assert.deepEqual(guardStates.at(-1), { status: "error", token: "" })
+    cleanup()
+    assert.equal(removedWidgets, 1)
+    const count = guardStates.length
+    widgetOptions.callback("late-token")
+    assert.equal(guardStates.length, count)
+    requireGuard = false
+    FormSecurity({ action: "newsletter", resetKey: 1, onChange: (state) => guardStates.push(state) })
+    const cleanupOff = globalThis.__formSecurityEffect()
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.deepEqual(guardStates.at(-1), { status: "off", token: "" })
+    cleanupOff()
+  } finally {
+    globalThis.fetch = previousGuardFetch
+    globalThis.window = previousGuardWindow
+    delete globalThis.__formSecurityEffect
+  }
   console.log(
     "PASS: registration/recovery, approval/download rendering, separate leadership/executives, legacy gallery, content refresh, Facebook API/render/fallback/polling/cleanup, and both Google verification tags.",
   )

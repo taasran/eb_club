@@ -175,7 +175,7 @@ assert(
   index.indexOf("await limitRequest(adminQuota") >
     index.indexOf("if (!role || !canAccess"),
 )
-assert.match(index, /maxSize: 4096/)
+assert.match(index, /maxSize: 8192/)
 const headers = readFileSync("public/_headers", "utf8")
 for (const name of [
   "X-Content-Type-Options",

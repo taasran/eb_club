@@ -72,6 +72,54 @@ for (const line of rootPolicy.split("\n").filter((line) => line.startsWith("  ")
   assert.equal(publicResponse.headers.get(line.slice(0, separator).trim()), line.slice(separator + 1).trim())
 }
 
+const previousRewriter = globalThis.HTMLRewriter
+try {
+  globalThis.HTMLRewriter = class {
+    on(selector, handler) {
+      assert.equal(selector, "script")
+      this.handler = handler
+      return this
+    }
+    async transform(response) {
+      const html = await response.text()
+      const rewritten = html.replace(/<script([^>]*)>/g, (_match, attributes) => {
+        let nonce
+        this.handler.element({ setAttribute: (name, value) => {
+          assert.equal(name, "nonce")
+          nonce = value
+        } })
+        return `<script${attributes} nonce="${nonce}">`
+      })
+      return new Response(rewritten, response)
+    }
+  }
+  const documentResponse = () => onRequest({
+    request: new Request(`${canonical}/admin`),
+    next: () => new Response('<script>window.example = true</script><script type="module" src="/assets/app.js"></script>', {
+      headers: { "Content-Type": "text/html; charset=utf-8", ETag: "old-etag", "Content-Length": "1" },
+    }),
+  })
+  const response = await documentResponse()
+  const policy = response.headers.get("Content-Security-Policy")
+  const scriptPolicy = policy.split(";").find((directive) => directive.includes("script-src"))
+  assert(!scriptPolicy.includes("'unsafe-inline'"))
+  assert(!scriptPolicy.includes("'unsafe-eval'"))
+  const nonce = scriptPolicy.match(/'nonce-([a-f0-9]{32})'/)[1]
+  const markup = await response.text()
+  assert.equal((markup.match(new RegExp(`nonce="${nonce}"`, "g")) ?? []).length, 2)
+  assert.equal(response.headers.get("Cache-Control"), "no-store")
+  assert.equal(response.headers.get("Referrer-Policy"), "no-referrer")
+  assert.equal(response.headers.get("ETag"), null)
+  assert.equal(response.headers.get("Content-Length"), null)
+  assert.equal(response.headers.get("Content-Security-Policy-Report-Only"), null)
+  assert(policy.includes("https://challenges.cloudflare.com"))
+  const nextResponse = await documentResponse()
+  assert.notEqual(nextResponse.headers.get("Content-Security-Policy"), policy)
+} finally {
+  if (previousRewriter === undefined) delete globalThis.HTMLRewriter
+  else globalThis.HTMLRewriter = previousRewriter
+}
+
 const moduleUrl = (source) => {
   const { outputText, diagnostics } = ts.transpileModule(source, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },

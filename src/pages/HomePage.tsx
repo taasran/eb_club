@@ -12,6 +12,7 @@ import LegacySlideshow from "../components/LegacySlideshow"
 import FacebookUpdates from "../components/FacebookUpdates"
 import ManagedImage from "../components/ManagedImage"
 import ActivityGallery from "../components/ActivityGallery"
+import FormSecurity, { type FormGuard } from "../components/FormSecurity"
 import { eventPhotos, resolveActivities } from "../activityMedia"
 import { currentClubTeam, type ClubEvent } from "../contentClient"
 import {
@@ -117,10 +118,27 @@ export default function HomePage() {
   }, [])
   const [formError, setFormError] = useState("")
   const [sending, setSending] = useState(false)
+  const [formGuards, setFormGuards] = useState<Record<"join" | "newsletter", FormGuard>>({
+    join: { status: "loading", token: "" },
+    newsletter: { status: "loading", token: "" },
+  })
+  const [guardVersion, setGuardVersion] = useState({ join: 0, newsletter: 0 })
+  const submitting = useRef(false)
+  const formBlocked = (type: "join" | "newsletter") => {
+    const guard = formGuards[type]
+    return guard.status === "loading" || guard.status === "error" ||
+      (guard.status === "required" && !guard.token)
+  }
   const submitForm = async (
     type: "join" | "newsletter",
     data: Record<string, string>,
   ) => {
+    if (submitting.current) return false
+    if (formBlocked(type)) {
+      setFormError("Please complete the security check before submitting.")
+      return false
+    }
+    submitting.current = true
     setSending(true)
     setFormError("")
     try {
@@ -130,7 +148,7 @@ export default function HomePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${publicAnonKey}`,
         },
-        body: JSON.stringify({ type, data }),
+        body: JSON.stringify({ type, data, turnstileToken: formGuards[type].token }),
       })
       const body = await response.json().catch(() => null)
       if (!response.ok) throw new Error(body?.error ?? "Something went wrong.")
@@ -143,7 +161,10 @@ export default function HomePage() {
       )
       return false
     } finally {
+      submitting.current = false
       setSending(false)
+      setFormGuards((current) => ({ ...current, [type]: { status: "loading", token: "" } }))
+      setGuardVersion((current) => ({ ...current, [type]: current[type] + 1 }))
     }
   }
 
@@ -900,10 +921,17 @@ export default function HomePage() {
                   setSubscribed(false)
                 }}
               />
-              <button aria-label="Subscribe to club updates" type="submit">
+              <button aria-label="Subscribe to club updates" type="submit" disabled={sending || formBlocked("newsletter")}>
                 <Icon name="arrow" />
               </button>
             </div>
+            {!subscribed && (
+              <FormSecurity
+                action="newsletter"
+                resetKey={guardVersion.newsletter}
+                onChange={(guard) => setFormGuards((current) => ({ ...current, newsletter: guard }))}
+              />
+            )}
             <small className="form-note">
               {formError && !joinOpen
                 ? formError
@@ -1188,10 +1216,15 @@ export default function HomePage() {
                     Batch
                     <input name="batch" required placeholder="e.g. 26th" />
                   </label>
+                  <FormSecurity
+                    action="join"
+                    resetKey={guardVersion.join}
+                    onChange={(guard) => setFormGuards((current) => ({ ...current, join: guard }))}
+                  />
                   <button
                     className="button primary"
                     type="submit"
-                    disabled={sending}
+                    disabled={sending || formBlocked("join")}
                   >
                     {sending ? (
                       <>

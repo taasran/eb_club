@@ -26,7 +26,13 @@ export async function onRequest(context) {
     } else if (source.pathname.startsWith("/leadership/")) {
       response.headers.set("X-Robots-Tag", "noindex, follow")
     }
-    return response
+    if (source.pathname === "/admin" || source.pathname.startsWith("/admin/")) {
+      response.headers.set("Cache-Control", "no-store")
+      response.headers.set("Referrer-Policy", "no-referrer")
+    }
+    return response.headers.get("Content-Type")?.toLowerCase().includes("text/html")
+      ? secureDocument(response)
+      : response
   }
 
   const destination = new URL(canonicalOrigin)
@@ -44,3 +50,4 @@ export async function onRequest(context) {
     },
   })
 }
+import { secureDocument } from "./lib/document-security.mjs"

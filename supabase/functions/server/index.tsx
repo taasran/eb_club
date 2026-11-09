@@ -9,6 +9,7 @@ import { approvedAccountRole, listAccountReviews, approveAccount, deleteAccount,
 import { createFacebookFeed } from "./facebook.ts";
 import { createFacebookArchive, FacebookArchiveError } from "./facebook_archive.ts";
 import { createRequestLimiter, publicQuota, adminQuota, SecurityLimitError, validSubmission } from "./security.ts";
+import { createTurnstile, TurnstileError } from "./turnstile.ts";
 
 const app = new Hono<{ Variables: { ownerEmail: string; role: Role; actorName: string } }>();
 const base = "/make-server-ad6cf477";
@@ -57,6 +58,7 @@ app.use("/*", bodyLimit({
   onError: (c) => c.json({ error: "Request is too large." }, 413),
 }));
 app.onError((error, c) => {
+  if (error instanceof TurnstileError) return c.json({ error: error.message }, error.status);
   if (error instanceof SecurityLimitError) {
     c.header("Retry-After", String(error.retryAfter));
     return c.json({ error: error.message }, error.status);
@@ -70,8 +72,8 @@ app.onError((error, c) => {
 app.notFound((c) => c.json({ error: "API route not found. Deploy the latest club backend." }, 404));
 
 app.use(`${base}/public/*`, bodyLimit({
-  maxSize: 4096,
-  onError: (c) => c.json({ error: "Public form requests must be smaller than 4 KB." }, 413),
+  maxSize: 8192,
+  onError: (c) => c.json({ error: "Public form requests must be smaller than 8 KB." }, 413),
 }));
 app.use(`${base}/public/*`, async (c, next) => {
   if (c.req.method === "POST") {
@@ -87,6 +89,14 @@ app.use(`${base}/public/*`, async (c, next) => {
 });
 
 app.get(`${base}/health`, (c) => c.json({ status: "ok", version: "club-admin-v4" }));
+
+const turnstile = createTurnstile({
+  config: () => ({
+    siteKey: Deno.env.get("TURNSTILE_SITE_KEY"),
+    secretKey: Deno.env.get("TURNSTILE_SECRET_KEY"),
+  }),
+});
+app.get(`${base}/public/form-security`, (c) => c.json(turnstile.publicConfig()));
 
 const getFacebookFeed = createFacebookFeed({
   config: () => ({
@@ -230,6 +240,7 @@ app.post(`${base}/public/submit`, async (c) => {
   const submission = validSubmission(body);
   if (!submission) return c.json({ error: "Please enter valid submission details without control characters." }, 400);
   const { type, data } = submission;
+  await turnstile.verify(body?.turnstileToken, type);
   // Stable keys deduplicate repeat submissions without exposing the email in keys.
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.email.toLowerCase()));
   const id = `${type}-${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;

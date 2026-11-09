@@ -121,3 +121,4 @@ await import("./facebook-diagnostics.test.mjs");
 await import("./facebook-shared.test.mjs");
 await import("./facebook-archive.test.mjs");
 await import("./security.test.mjs");
+await import("./turnstile.test.mjs");

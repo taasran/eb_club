@@ -158,7 +158,8 @@ try {
 
 const html = readFileSync("index.html", "utf8")
 assert.match(html, /rel="canonical" href="https:\/\/ebclub\.iiuc\.ac\.bd\/"/)
-assert.equal((html.match(/name="google-site-verification"/g) ?? []).length, 2)
+assert.equal((html.match(/name="google-site-verification"/g) ?? []).length, 3)
+assert.match(html, /content="a8_fDReYr8hLTz9KJ8kg2jsrU5NqAPbzOzv9fg6Rc0I"/)
 const structured = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1])
 for (const entity of structured["@graph"]) {
   assert(entity["@id"].startsWith(`${canonical}/`))
@@ -167,6 +168,7 @@ for (const entity of structured["@graph"]) {
 assert.equal(structured["@graph"][0].logo, `${canonical}/images/club-logo.png`)
 assert.match(readFileSync("public/robots.txt", "utf8"), /Sitemap: https:\/\/ebclub\.iiuc\.ac\.bd\/sitemap\.xml/)
 assert.match(readFileSync("public/sitemap.xml", "utf8"), /<loc>https:\/\/ebclub\.iiuc\.ac\.bd\/<\/loc>/)
+assert.equal(readFileSync("public/googlece38700623b1f548.html", "utf8").trim(), "google-site-verification: googlece38700623b1f548.html")
 const siteConfig = JSON.parse(readFileSync(".figma/make/site.json", "utf8"))
 assert.equal(siteConfig.openGraph.image, `${canonical}/images/club-banner.png`)
 for (const file of ["index.html", "public/robots.txt", "public/sitemap.xml", ".figma/make/site.json", "src/seo.ts", "src/admin/onboarding.ts", "src/pages/HomePage.tsx"]) {

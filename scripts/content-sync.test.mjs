@@ -1845,8 +1845,8 @@ try {
         .readFileSync("index.html", "utf8")
         .match(/name="google-site-verification"/g) ?? []
     ).length,
-    2,
-    "Preserve both Google Search Console verification tags.",
+    3,
+    "Preserve all Google Search Console verification tags.",
   )
   const guardReact = write("guardReact", `
     export function useState(initial) { return [initial, () => {}]; }

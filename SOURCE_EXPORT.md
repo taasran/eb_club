@@ -1,6 +1,6 @@
 # Project source snapshot
 
-Generated: 2026-11-09T18:36:47.046Z
+Generated: 2026-11-13T18:14:48.842Z
 Backend source version: club-admin-v4
 
 Includes frontend, backend, workflow, tests and static assets. Does not include
